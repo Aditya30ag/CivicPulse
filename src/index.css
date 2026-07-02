@@ -41,4 +41,7 @@
   --color-danger: var(--accent-danger);
   
   --color-primary: var(--bg-dark-accent);
+  
+  /* Added spinning keyframe animation utility natively for Tailwind v4 */
+  --animate-spin-slow: spin 3s linear infinite;
 }
