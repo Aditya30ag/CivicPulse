@@ -97,6 +97,39 @@ VITE_CLOUDINARY_UPLOAD_PRESET=ml_default
 
 ---
 
+## 🔥 Firestore Setup
+
+After creating your Firebase project:
+
+### 1. Create a Firestore Database
+- Open **Firebase Console**.
+- Select your project.
+- Navigate to **Firestore Database**.
+- Click **Create database**.
+- Start in **Test mode** for local development.
+
+### 2. Enable Google Authentication
+- Go to **Authentication → Sign-in method**.
+- Enable the **Google** provider.
+
+### 3. Create Firestore Collections
+
+The application uses the following collections:
+
+- `reports` – Stores civic issue reports.
+- `users` – Stores authenticated user profiles and leaderboard data.
+- `wards` – Stores ward-level prediction and analytics data.
+
+> Documents are created automatically by the application as data is added.
+
+### Firestore Indexes
+
+The current implementation primarily relies on Firestore's automatically created single-field indexes.
+
+At the time of writing, no manual composite indexes are required for the existing Firestore queries.
+
+If Firestore displays an index creation prompt while testing new features, simply follow the generated Firebase Console link and create the suggested composite index.
+
 ### ▶️ Running the Project
 
 ```bash
