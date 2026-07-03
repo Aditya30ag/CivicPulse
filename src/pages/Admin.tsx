@@ -306,11 +306,19 @@ export default function Admin() {
         resolved: counts.resolved
       };
     });
-  
-  // Provide fallback empty data if no reports
+// Provide fallback empty data if no reports
   if (dynamicDataOverTime.length === 0) {
-      dynamicDataOverTime = [{ name: months[new Date().getMonth()], new: 0, resolved: 0 }];
+    dynamicDataOverTime = [{ name: months[new Date().getMonth()], new: 0, resolved: 0 }];
   }
+
+  const getTabButtonClass = (
+    tab: 'queue' | 'map' | 'activity' | 'insights'
+  ) =>
+    `px-5 py-1.5 rounded-full font-bold text-sm cursor-pointer transition-all duration-200 ${
+      activeTab === tab
+        ? 'bg-dark text-white shadow-sm'
+        : 'text-muted hover:text-dark hover:bg-gray-100 hover:shadow-sm'
+    }`;
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto h-[calc(100vh-64px)] flex flex-col">
@@ -320,27 +328,30 @@ export default function Admin() {
           <p className="text-muted mt-0.5 font-medium text-sm">Civic Pulse Admin • Ward 7 Overview</p>
         </div>
         <div className="flex bg-transparent border border-border-subtle p-1.5 rounded-full shadow-sm bg-white">
-          <button 
+          <button
             onClick={() => setActiveTab('queue')}
-            className={`px-5 py-1.5 rounded-full font-bold text-sm transition-colors ${activeTab === 'queue' ? 'bg-dark text-white shadow-sm' : 'text-muted hover:text-dark'}`}
+            className={getTabButtonClass('queue')}
           >
             Queue
           </button>
-          <button 
+
+          <button
             onClick={() => setActiveTab('map')}
-            className={`px-5 py-1.5 rounded-full font-bold text-sm transition-colors ${activeTab === 'map' ? 'bg-dark text-white shadow-sm' : 'text-muted hover:text-dark'}`}
+            className={getTabButtonClass('map')}
           >
             Live map
           </button>
-          <button 
+
+          <button
             onClick={() => setActiveTab('activity')}
-            className={`px-5 py-1.5 rounded-full font-bold text-sm transition-colors ${activeTab === 'activity' ? 'bg-dark text-white shadow-sm' : 'text-muted hover:text-dark'}`}
+            className={getTabButtonClass('activity')}
           >
             Agent activity
           </button>
-          <button 
+
+          <button
             onClick={() => setActiveTab('insights')}
-            className={`px-5 py-1.5 rounded-full font-bold text-sm transition-colors ${activeTab === 'insights' ? 'bg-dark text-white shadow-sm' : 'text-muted hover:text-dark'}`}
+            className={getTabButtonClass('insights')}
           >
             Predictive
           </button>
