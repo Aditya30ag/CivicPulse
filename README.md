@@ -20,41 +20,6 @@ Cities struggle with civic issue management—potholes, water leaks, and infrast
 
 ---
 
-## Quick Start
-
-Follow these steps to run Civic Pulse locally.
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Aditya30ag/CivicPulse.git
-cd CivicPulse
-```
-
-### 2. Install dependencies
-
-```bash
-npm install
-```
-
-### 3. Configure environment variables
-
-Copy `.env.example` to `.env` and provide the required Firebase, Cloudinary, and Gemini API credentials.
-
-### 4. Start the development server
-
-```bash
-npm run dev
-```
-
-The application will be available at:
-
-```text
-http://localhost:3000
-```
-
-For complete setup instructions, including Firebase, Cloudinary, and Gemini configuration, see **STEPUP.md**.
-
 ## Features
 
 - [x] **Agentic AI Perception**: Upload a photo; Gemini 2.5 Flash automatically classifies the category, writes a title/description, and scores severity (1-10) with reasoning.
