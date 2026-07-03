@@ -1,0 +1,54 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="shieldClip">
+      <path d="M50 3
+               L83 17
+               V47
+               C83 71 68 86 50 96
+               C32 86 17 71 17 47
+               V17
+               Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Shield outline (sharper shoulders) -->
+  <path d="M50 3
+           L83 17
+           V47
+           C83 71 68 86 50 96
+           C32 86 17 71 17 47
+           V17
+           Z"
+        fill="none"
+        stroke="#181e15"
+        stroke-width="5"
+        stroke-linejoin="round"/>
+
+  <!-- Pulse line -->
+  <path d="M23 37
+           H35
+           L41.5 23
+           L50 53
+           L56.5 29
+           L60.5 37
+           H77"
+        fill="none"
+        stroke="#181e15"
+        stroke-width="5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- People (community group) - larger, clipped to shield bounds -->
+  <g clip-path="url(#shieldClip)">
+    <g fill="#181e15">
+      <circle cx="33" cy="72" r="8"/>
+      <path d="M17 100 C17 86, 25 79, 33 79 C41 79, 49 86, 49 100 Z"/>
+
+      <circle cx="50" cy="66" r="9.5"/>
+      <path d="M31 100 C31 82.5, 40.5 75.5, 50 75.5 C59.5 75.5, 69 82.5, 69 100 Z"/>
+
+      <circle cx="67" cy="72" r="8"/>
+      <path d="M51 100 C51 86, 59 79, 67 79 C75 79, 83 86, 83 100 Z"/>
+    </g>
+  </g>
+</svg>

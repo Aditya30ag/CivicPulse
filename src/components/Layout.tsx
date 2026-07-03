@@ -16,9 +16,10 @@ export default function Layout() {
     <div className="h-[100dvh] bg-page flex flex-col font-sans overflow-hidden">
       {/* Desktop Top Nav */}
       <nav className="hidden md:flex items-center justify-between px-8 py-4 bg-card text-main sticky top-0 z-50 border-b border-border-subtle">
-        <div className="flex items-center gap-2">
-          <span className="text-xl font-bold tracking-tight text-dark">Civic Pulse</span>
-        </div>
+        <Link to="/" className="flex items-center gap-2">
+        <img src="/logo.svg" alt="Civic Pulse" className="h-9 w-auto" />
+        <span className="text-xl font-bold tracking-tight text-dark">Civic Pulse</span>
+        </Link>
         <div className="flex gap-8">
           {navItems.map((item) => (
             <Link
