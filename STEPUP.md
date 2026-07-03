@@ -1,41 +1,26 @@
 <div align="center">
-  <h1>⚙️ STEPUP.md</h1>
-  <p><strong>Local Development Setup — Civic Pulse</strong></p>
+  <h1>STEPUP.md</h1>
   <p>Agentic AI-powered civic issue reporting platform</p>
 </div>
-
----
-
-## 📋 Table of Contents
-- [Prerequisites](#-prerequisites)
-- [Cloning & Installation](#-cloning--installation)
-- [Environment Variables Setup](#-environment-variables-setup)
-- [Running the Project](#-running-the-project)
-- [Project Structure](#-project-structure)
-- [Troubleshooting](#-troubleshooting)
-- [Additional Tips](#-additional-tips)
-
----
 
 ## 🎯 Prerequisites
 
 Before starting, ensure you have the following:
 
-- **Node.js** — Version **18.x or higher** (Recommended: 20.x LTS)
-- **npm** — Comes bundled with Node.js
-- **Git** — Latest version
-- **Modern Browser** — Chrome or Firefox (for Geolocation and Leaflet map)
+- **Node.js** - Version **18.x or higher** (Recommended: 20.x LTS)
+- **npm** - Comes bundled with Node.js
+- **Git** - Latest version
+- **Modern Browser** - Chrome or Firefox (for Geolocation and Leaflet map)
 - **Accounts & API Keys**:
   - [Firebase Console](https://console.firebase.google.com)
   - [Google AI Studio](https://aistudio.google.com) (Gemini)
   - [Cloudinary Dashboard](https://cloudinary.com)
 
----
 
 ## 📥 Cloning & Installation
 
 
-### 1️⃣ Clone the repository
+### 1️ Clone the repository
 
 ```bash
 git clone https://github.com/Aditya30ag/CivicPulse.git
@@ -44,12 +29,12 @@ git clone https://github.com/Aditya30ag/CivicPulse.git
 cd CivicPulse
 ```
 
-### 2️⃣ Install dependencies
+### 2️ Install dependencies
 ```bash
 npm install
 ```
 
-### 3️⃣ Verify installation
+### 3️ Verify installation
 ```bash
 npm run lint
 ```
@@ -121,32 +106,11 @@ npm run dev
 The app will start at **`http://localhost:3000`**
 
 **Available Scripts:**
-- `npm run dev` — Start development server
-- `npm run build` — Production build
-- `npm run preview` — Preview production build
-- `npm run lint` — TypeScript check
+- `npm run dev` - Start development server
+- `npm run build` - Production build
+- `npm run preview` - Preview production build
+- `npm run lint` - TypeScript check
 
----
-
-## 🗂️ Project Structure
-
-```text
-CivicPulse/
-├── src/
-│   ├── pages/           # Main pages (Login, Report, Home, Admin, Profile, etc.)
-│   ├── components/      # Reusable UI (Layout, ProtectedRoute)
-│   ├── contexts/        # AuthContext
-│   ├── lib/
-│   │   └── gemini.ts    # Perception, Deduplication, Forecasting agents
-│   ├── firebase.ts      # Firebase initialization
-│   └── App.tsx          # React Router setup
-├── public/
-├── .env.example
-├── vite.config.ts
-└── package.json
-```
-
----
 
 ## 🛠️ Troubleshooting
 
