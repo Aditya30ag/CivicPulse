@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, onSnapshot, getDoc, runTransaction, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, runTransaction, collection, query, where, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { MapPin, Clock, Loader2, User, Eye, Search, AlertTriangle, CheckCircle, ArrowRight, XCircle, GitMerge } from 'lucide-react';
 import { motion } from 'motion/react';

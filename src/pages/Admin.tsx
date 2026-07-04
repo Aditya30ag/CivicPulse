@@ -128,7 +128,7 @@ export default function Admin() {
     const fetchWards = async () => {
       const wardsRef = collection(db, 'wards');
       const snap = await getDocs(wardsRef);
-      let currentWards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let currentWards = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
       if (currentWards.length === 0) {
         const sampleWards = [
@@ -273,7 +273,7 @@ export default function Admin() {
   }, {} as Record<string, number>);
   const catColors = ['#16f0bf', '#c190ff', '#f5a623', '#ef4444', '#3b82f6'];
   const dynamicCategories = Object.entries(categoryCounts)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
     .slice(0, 4)
     .map(([name, count], idx) => ({
        name,

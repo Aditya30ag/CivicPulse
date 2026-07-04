@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, arrayUnion, doc, orderBy } from 'firebase/firestore';
-import { MapPin, Upload, X, Loader2, Image as ImageIcon, Video, CheckCircle2 } from 'lucide-react';
+import { MapPin, Upload, X, Loader2, Image as ImageIcon, Video, CheckCircle2, Trash2, RefreshCw } from 'lucide-react';
 import { analyzeIssueImage, checkDuplicateIssue } from '../lib/gemini';
 import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
+import { useOffline } from '../contexts/OfflineContext';
 
 const uploadToCloudinary = async (file: File): Promise<string> => {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -42,10 +43,89 @@ const CATEGORIES = [
   "Other"
 ];
 
+function DraftItem({ draft, onDelete, onSync, isOnline }: { draft: any, onDelete: (id: string) => void, onSync: () => void, isOnline: boolean, key?: any }) {
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!draft.file) return;
+    const url = URL.createObjectURL(draft.file);
+    setThumbUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [draft.file]);
+
+  return (
+    <div className="flex items-center gap-4 py-3 border-b border-border-subtle last:border-b-0">
+      <div className="w-16 h-16 rounded-lg overflow-hidden border border-border-subtle bg-page shrink-0 flex items-center justify-center">
+        {thumbUrl ? (
+          draft.mediaType === 'video' ? (
+            <video src={thumbUrl} className="w-full h-full object-cover" />
+          ) : (
+            <img src={thumbUrl} alt="Draft Thumbnail" className="w-full h-full object-cover" />
+          )
+        ) : (
+          <div className="w-6 h-6 rounded bg-muted animate-pulse"></div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold text-sm text-dark truncate">
+          {draft.title || <span className="italic text-muted font-normal font-sans text-xs">Auto-generates details online</span>}
+        </h4>
+        <p className="text-xs text-muted mt-0.5 truncate">
+          {draft.category || 'Uncategorized'} • {draft.location.lat.toFixed(4)}, {draft.location.lng.toFixed(4)}
+        </p>
+        <div className="flex items-center gap-2 mt-1.5">
+          {draft.status === 'uploading' && (
+            <span className="flex items-center gap-1 text-[10px] bg-lavender/10 text-lavender font-bold px-2 py-0.5 rounded-full">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Syncing
+            </span>
+          )}
+          {draft.status === 'pending' && (
+            <span className="text-[10px] bg-warning/10 text-warning font-bold px-2 py-0.5 rounded-full">
+              Awaiting connection
+            </span>
+          )}
+          {draft.status === 'failed' && (
+            <span className="group relative text-[10px] bg-danger/10 text-danger font-bold px-2 py-0.5 rounded-full cursor-help">
+              Failed (hover for error)
+              <span className="hidden group-hover:block absolute bottom-full left-0 bg-dark text-white text-[10px] font-normal p-2 rounded shadow-md w-48 mb-1 z-[100] break-words">
+                {draft.errorMessage || 'Unknown error'}
+              </span>
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {draft.status === 'failed' && isOnline && (
+          <button
+            type="button"
+            onClick={onSync}
+            className="p-2 text-muted hover:text-dark hover:bg-page rounded-full transition-colors cursor-pointer"
+            title="Retry Sync"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => onDelete(draft.id)}
+          className="p-2 text-muted hover:text-danger hover:bg-danger/10 rounded-full transition-colors cursor-pointer"
+          title="Delete Draft"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Report() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isOnline, drafts, addOfflineDraft, deleteOfflineDraft, syncDrafts, syncing } = useOffline();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [analyzing, setAnalyzing] = useState(false);
@@ -162,6 +242,49 @@ export default function Report() {
       setError(err.message || "Failed to analyze image. Please try again.");
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleProceedOffline = () => {
+    setError(null);
+    if (!file) {
+      setError("Please attach a photo or video.");
+      return;
+    }
+    if (!location) {
+      setError("Please provide the location of the issue.");
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleOfflineSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file || !location) {
+      setError("Missing information.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const draftId = `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await addOfflineDraft({
+        id: draftId,
+        file: file,
+        mediaType: mediaType || 'image',
+        location: location,
+        createdAt: new Date().toISOString(),
+        title: title || '',
+        category: category || 'Other',
+        description: description || '',
+        severity: severity,
+        reporterId: user?.uid || 'anonymous'
+      });
+      navigate('/');
+    } catch (err: any) {
+      console.error("Failed to save offline draft:", err);
+      setError("Failed to save draft locally: " + err.message);
+      setSubmitting(false);
     }
   };
 
@@ -321,8 +444,53 @@ export default function Report() {
         <p className="text-muted mt-2">Help keep our community clean and safe. Provide details below.</p>
       </div>
 
+      {/* Pending Drafts List */}
+      {drafts.length > 0 && (
+        <div className="bg-card rounded-xl shadow-sm border border-border-subtle p-6 mb-6">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-3 mb-4">
+            <h3 className="font-bold text-dark flex items-center gap-2">
+              Pending Drafts
+              <span className="bg-dark/10 text-dark text-xs px-2 py-0.5 rounded-full font-bold">
+                {drafts.length}
+              </span>
+            </h3>
+            {isOnline && (
+              <button
+                type="button"
+                onClick={syncDrafts}
+                disabled={syncing}
+                className="flex items-center gap-1.5 text-xs font-bold bg-dark text-white px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity disabled:opacity-55 cursor-pointer"
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Sync Now
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          <div className="divide-y divide-border-subtle max-h-60 overflow-y-auto pr-1">
+            {drafts.map((draft) => (
+              <DraftItem
+                key={draft.id}
+                draft={draft}
+                onDelete={deleteOfflineDraft}
+                onSync={syncDrafts}
+                isOnline={isOnline}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {step === 1 ? (
-        <form onSubmit={(e) => { e.preventDefault(); handleAnalyze(); }} className="bg-card rounded-xl shadow-sm border border-border-subtle p-6 space-y-6">
+        <form onSubmit={(e) => { e.preventDefault(); isOnline ? handleAnalyze() : handleProceedOffline(); }} className="bg-card rounded-xl shadow-sm border border-border-subtle p-6 space-y-6">
           
           {error && (
             <div className="bg-danger/10 text-danger p-3 rounded-lg text-sm mb-4">
@@ -482,14 +650,14 @@ export default function Report() {
               ) : (
                 <>
                   <CheckCircle2 className="w-5 h-5" />
-                  Analyze Image
+                  {isOnline ? 'Analyze Image (AI)' : 'Proceed to Details (Offline)'}
                 </>
               )}
             </button>
           </div>
         </form>
       ) : (
-        <form onSubmit={handleFinalSubmit} className="bg-card rounded-xl shadow-sm border border-border-subtle p-6 space-y-6">
+        <form onSubmit={isOnline ? handleFinalSubmit : handleOfflineSubmit} className="bg-card rounded-xl shadow-sm border border-border-subtle p-6 space-y-6">
           {error && (
             <div className="bg-danger/10 text-danger p-3 rounded-lg text-sm mb-4">
               {error}
@@ -593,12 +761,12 @@ export default function Report() {
                       {submitting ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
-                          Submitting...
+                          {isOnline ? 'Submitting...' : 'Saving Draft...'}
                         </>
                       ) : (
                         <>
                           <Upload className="w-5 h-5" />
-                          Confirm Submit
+                          {isOnline ? 'Confirm Submit' : 'Save Draft Offline'}
                         </>
                       )}
                     </button>

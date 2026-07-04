@@ -95,7 +95,7 @@ export default function Home() {
     if (!db) return;
     const reportsRef = collection(db, 'reports');
     const unsubscribe = onSnapshot(reportsRef, (snap) => {
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
       setReports(data?.sort((a, b) => getDate(b.createdAt).getTime() - getDate(a.createdAt).getTime()) || []);
     });
     return () => unsubscribe();
