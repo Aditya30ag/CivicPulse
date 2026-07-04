@@ -20,7 +20,13 @@
   }
   body {
     background-color: var(--bg-page);
+    background-image:
+      radial-gradient(circle at 12% -10%, rgba(14, 159, 125, 0.07), transparent 40%),
+      radial-gradient(circle at 90% 0%, rgba(154, 76, 245, 0.05), transparent 35%);
+    background-attachment: fixed;
     color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
   }
 }
 

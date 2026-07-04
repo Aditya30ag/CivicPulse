@@ -8,6 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { MapPin, AlertCircle, Clock, CheckCircle2, ShieldCheck, Plus, Activity, UserCheck } from 'lucide-react';
 
 const iconHTML = (color: string) => `
   <div style="
@@ -33,6 +34,9 @@ const createMarkerIcon = (color: string) => L.divIcon({
 });
 
 const icons = {
+  reported: createMarkerIcon('#dc2626'),     // danger (red)
+  in_progress: createMarkerIcon('#d97706'),  // warning (orange/yellow)
+  resolved: createMarkerIcon('#0e9f7d')      // success (mint)
   reported: createMarkerIcon('var(--accent-danger)'),     // danger (red)
   in_progress: createMarkerIcon('var(--accent-warning)'),  // warning (orange/yellow)
   resolved: createMarkerIcon('var(--accent-success)')      // success (mint)
@@ -175,17 +179,29 @@ export default function Home() {
   const verifyReports = reports.filter(r => r.status === 'reported').slice(0, 1);
 
   return (
-    <div className="p-4 md:p-8 max-w-[1400px] w-full mx-auto h-[calc(100vh-64px)] flex flex-col">
+    <div className="p-4 sm:p-6 md:p-8 max-w-[1400px] w-full mx-auto h-[calc(100vh-64px)] flex flex-col">
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold text-dark tracking-tight">Neighborhood map</h1>
-          <p className="text-muted mt-0.5 font-medium text-sm">Discover, track, and interact with issues reported near you</p>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-dark bg-gradient-to-b from-white/15 to-transparent flex items-center justify-center shrink-0 shadow-sm">
+            <MapPin className="w-5 h-5 text-white" strokeWidth={2.25} />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-dark tracking-tight">Neighborhood map</h1>
+            <p className="text-muted mt-1 font-medium text-sm leading-relaxed">Discover, track, and interact with issues reported near you</p>
+          </div>
         </div>
-        <Link to="/report" className="px-5 py-2 rounded-full font-bold text-sm bg-dark text-white shadow-sm hover:bg-dark/90 transition-colors">
-          + Report an issue
+        <Link to="/report" className="flex items-center gap-1.5 px-5 py-2.5 rounded-full font-bold text-sm bg-dark bg-gradient-to-b from-white/15 to-transparent text-white shadow-sm hover:shadow-md hover:brightness-110 transition-all shrink-0">
+          <Plus className="w-4 h-4" strokeWidth={2.5} />
+          Report an issue
         </Link>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 shrink-0">
+        <div className="bg-card border border-border-subtle border-l-4 border-l-danger rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-5 h-5 text-danger" strokeWidth={2.25} />
+            </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 shrink-0">
         <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
@@ -197,6 +213,11 @@ export default function Home() {
           </div>
         </div>
         
+        <div className="bg-card border border-border-subtle border-l-4 border-l-warning rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-warning" strokeWidth={2.25} />
+            </div>
         <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2.5 h-2.5 rounded-full bg-warning"></div>
@@ -207,6 +228,11 @@ export default function Home() {
           </div>
         </div>
 
+        <div className="bg-card border border-border-subtle border-l-4 border-l-success rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-success" strokeWidth={2.25} />
+            </div>
         <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
@@ -217,6 +243,11 @@ export default function Home() {
           </div>
         </div>
 
+        <div className="bg-card border border-border-subtle border-l-4 border-l-lavender rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-lavender/10 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-lavender" strokeWidth={2.25} />
+            </div>
         <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2.5 h-2.5 rounded-full bg-lavender"></div>
@@ -230,7 +261,7 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
         <div className="md:col-span-2 flex flex-col gap-4">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-page border border-border-subtle text-sm font-bold text-dark hover:bg-page/80 transition-colors">
               <div className="w-2.5 h-2.5 rounded-full bg-danger"></div> Reported
             </button>
@@ -241,7 +272,7 @@ export default function Home() {
               <div className="w-2.5 h-2.5 rounded-full bg-success"></div> Resolved
             </button>
           </div>
-          <div className="flex-1 rounded-xl overflow-hidden border border-border-subtle shadow-sm relative z-0 bg-page">
+          <div className="flex-1 rounded-2xl overflow-hidden border border-border-subtle shadow-sm relative z-0 bg-page">
             {center ? (
               <MapContainer center={center} zoom={14} className="absolute inset-0 w-full h-full" zoomControl={false}>
                 <TileLayer
@@ -259,6 +290,7 @@ export default function Home() {
                 <CircleMarker 
                   center={center}
                   radius={16}
+                  pathOptions={{ fillColor: '#181e15', fillOpacity: 0.15, weight: 2, color: '#181e15' }}
                   pathOptions={{ fillColor: '#dc2626', fillOpacity: 0.2, weight: 2, color: '#dc2626' }}
                 />
 
@@ -280,11 +312,14 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col gap-6 overflow-y-auto pr-2">
-          <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Nearby Activity</h3>
+          <div className="bg-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-3 flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5" />
+              Nearby Activity
+            </h3>
             <div className="flex flex-col divide-y divide-border-subtle">
               {nearbyReports.map((report) => (
-                <Link to={`/issue/${report.id}`} key={report.id} className="py-3 group first:pt-2">
+                <Link to={`/issue/${report.id}`} key={report.id} className="py-3 px-2 -mx-2 rounded-lg group first:pt-2 hover:bg-page/60 transition-colors">
                   <div className="flex items-center gap-2 mb-1">
                      <div className={`w-2 h-2 rounded-full ${
                        report.status === 'reported' ? 'bg-danger' :
@@ -303,11 +338,14 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Verify Nearby</h3>
+          <div className="bg-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-3 flex items-center gap-1.5">
+              <UserCheck className="w-3.5 h-3.5" />
+              Verify Nearby
+            </h3>
             <div className="flex flex-col divide-y divide-border-subtle">
               {verifyReports.length > 0 ? verifyReports.map((report) => (
-                <Link to={`/issue/${report.id}`} key={report.id} className="py-3 group first:pt-2">
+                <Link to={`/issue/${report.id}`} key={report.id} className="py-3 px-2 -mx-2 rounded-lg group first:pt-2 hover:bg-page/60 transition-colors">
                   <div className="flex items-center gap-2 mb-1">
                      <div className="w-2 h-2 rounded-full bg-lavender"></div>
                      <span className="font-bold text-sm text-dark group-hover:text-lavender transition-colors line-clamp-1">Confirm: {report.category} near you?</span>
