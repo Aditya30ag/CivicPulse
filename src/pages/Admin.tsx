@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc } from 'firebase/firestore';
-import { Loader2, LayoutList, Map as MapIcon, Activity, MapPin, AlertTriangle, User, Eye, Search, CheckCircle, ArrowRight, Lightbulb, ArrowUpRight, ArrowDownRight, Minus, GitMerge } from 'lucide-react';
+import { Loader2, LayoutList, Map as MapIcon, Activity, MapPin, AlertTriangle, User, Eye, Search, CheckCircle, ArrowRight, Lightbulb, ArrowUpRight, ArrowDownRight, Minus, GitMerge, Clock, ClipboardList } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -254,8 +254,8 @@ export default function Admin() {
 
   const riskScore = Math.min(100, Math.round((highSeverityCount / Math.max(1, totalOpenReports)) * 100 * 1.5 + 20));
   const dynamicRiskData = [
-    { name: 'Risk', value: riskScore || 1, fill: riskScore > 60 ? '#f5a623' : '#16f0bf' },
-    { name: 'Safe', value: 100 - (riskScore || 0), fill: '#e5e7eb' } 
+    { name: 'Risk', value: riskScore || 1, fill: riskScore > 60 ? '#d97706' : '#0e9f7d' },
+    { name: 'Safe', value: 100 - (riskScore || 0), fill: '#e5e7e2' } 
   ];
 
   const dynamicTopItems = unresolvedReports.slice(0, 4).map((r: any) => ({
@@ -271,7 +271,7 @@ export default function Admin() {
     acc[cat] = (acc[cat] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const catColors = ['#16f0bf', '#c190ff', '#f5a623', '#ef4444', '#3b82f6'];
+  const catColors = ['#0e9f7d', '#9a4cf5', '#d97706', '#dc2626', '#3b82f6'];
   const dynamicCategories = Object.entries(categoryCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
@@ -314,20 +314,25 @@ export default function Admin() {
   const getTabButtonClass = (
     tab: 'queue' | 'map' | 'activity' | 'insights'
   ) =>
-    `px-5 py-1.5 rounded-full font-bold text-sm cursor-pointer transition-all duration-200 ${
+    `px-5 py-1.5 rounded-full font-bold text-sm whitespace-nowrap cursor-pointer transition-all duration-200 ${
       activeTab === tab
-        ? 'bg-dark text-white shadow-sm'
+        ? 'bg-dark bg-gradient-to-b from-white/15 to-transparent text-white shadow-sm'
         : 'text-muted hover:text-dark hover:bg-gray-100 hover:shadow-sm'
     }`;
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto h-[calc(100vh-64px)] flex flex-col">
-      <div className="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold text-dark tracking-tight">Priority queue</h1>
-          <p className="text-muted mt-0.5 font-medium text-sm">Civic Pulse Admin • Ward 7 Overview</p>
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto h-[calc(100vh-64px)] flex flex-col">
+      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-dark bg-gradient-to-b from-white/15 to-transparent flex items-center justify-center shrink-0 shadow-sm">
+            <LayoutList className="w-5 h-5 text-white" strokeWidth={2.25} />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-dark tracking-tight">Priority queue</h1>
+            <p className="text-muted mt-0.5 font-medium text-sm">Civic Pulse Admin • Ward 7 Overview</p>
+          </div>
         </div>
-        <div className="flex bg-transparent border border-border-subtle p-1.5 rounded-full shadow-sm bg-white">
+        <div className="flex border border-border-subtle p-1.5 rounded-full shadow-sm bg-white overflow-x-auto">
           <button
             onClick={() => setActiveTab('queue')}
             className={getTabButtonClass('queue')}
@@ -358,7 +363,7 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="bg-card rounded-xl shadow-sm border border-border-subtle flex-1 overflow-hidden flex flex-col min-h-0">
+      <div className="bg-card rounded-2xl shadow-sm border border-border-subtle flex-1 overflow-hidden flex flex-col min-h-0">
         {activeTab === 'insights' && (
            <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-page">
              <div className="max-w-4xl mx-auto">
@@ -377,7 +382,7 @@ export default function Admin() {
                      initial={{ opacity: 0, scale: 0.95 }}
                      animate={{ opacity: 1, scale: 1 }}
                      transition={{ delay: idx * 0.1 }}
-                     className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                     className="bg-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
                    >
                      <div className="flex justify-between items-start mb-4">
                        <h3 className="font-bold text-lg text-dark">{ward.name}</h3>
@@ -426,10 +431,12 @@ export default function Admin() {
 
         {activeTab === 'queue' && (
            <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-page">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                 <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#16f0bf]"></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                 <div className="bg-card border border-border-subtle border-l-4 border-l-success rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                      <ClipboardList className="w-5 h-5 text-success" strokeWidth={2.25} />
+                    </div>
                     <span className="text-sm font-semibold text-muted">Total open reports</span>
                   </div>
                   <div className="flex items-baseline gap-2">
@@ -437,9 +444,11 @@ export default function Admin() {
                   </div>
                 </div>
                 
-                <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
+                <div className="bg-card border border-border-subtle border-l-4 border-l-danger rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="w-5 h-5 text-danger" strokeWidth={2.25} />
+                    </div>
                     <span className="text-sm font-semibold text-muted">High severity</span>
                   </div>
                   <div className="flex items-baseline gap-2">
@@ -447,9 +456,11 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#c190ff]"></div>
+                <div className="bg-card border border-border-subtle border-l-4 border-l-lavender rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-lavender/10 flex items-center justify-center shrink-0">
+                      <CheckCircle className="w-5 h-5 text-lavender" strokeWidth={2.25} />
+                    </div>
                     <span className="text-sm font-semibold text-muted">Resolved this week</span>
                   </div>
                   <div className="flex items-baseline gap-2">
@@ -457,9 +468,11 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#f97316]"></div>
+                <div className="bg-card border border-border-subtle border-l-4 border-l-warning rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                      <Clock className="w-5 h-5 text-warning" strokeWidth={2.25} />
+                    </div>
                     <span className="text-sm font-semibold text-muted">Avg resolution time</span>
                   </div>
                   <div className="flex items-baseline gap-2">
@@ -473,15 +486,15 @@ export default function Admin() {
               {/* Left Column */}
               <div className="md:col-span-3 flex flex-col gap-6">
                 
-                <div className="bg-card border border-border-subtle rounded-xl p-6 shadow-sm flex-1">
-                   <h3 className="text-lg font-bold text-dark mb-4 filter drop-shadow-sm">Reports over time</h3>
+                <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex-1">
+                   <h3 className="text-lg font-bold text-dark mb-4">Reports over time</h3>
                    <div className="flex gap-4 mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#16f0bf]"></div>
+                        <div className="w-2 h-2 rounded-full bg-success"></div>
                         <span className="text-xs font-semibold text-muted">New reports</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#c190ff]"></div>
+                        <div className="w-2 h-2 rounded-full bg-lavender"></div>
                         <span className="text-xs font-semibold text-muted">Resolved</span>
                       </div>
                     </div>
@@ -493,15 +506,15 @@ export default function Admin() {
                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }} dy={10} />
                           <YAxis axisLine={false} tickLine={false} tick={false} width={0} />
                           <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7e2', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                          <Line type="monotone" dataKey="new" stroke="#16f0bf" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
-                          <Line type="monotone" dataKey="resolved" stroke="#c190ff" strokeWidth={3} dot={false} />
+                          <Line type="monotone" dataKey="new" stroke="#0e9f7d" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
+                          <Line type="monotone" dataKey="resolved" stroke="#9a4cf5" strokeWidth={3} dot={false} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
                 </div>
 
-                <div className="bg-card border border-border-subtle rounded-xl p-6 shadow-sm flex-1">
-                   <h3 className="text-lg font-bold text-dark mb-6 filter drop-shadow-sm">Distribution by category</h3>
+                <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex-1">
+                   <h3 className="text-lg font-bold text-dark mb-6">Distribution by category</h3>
                    <div className="flex flex-col gap-5 mt-2 overflow-y-auto max-h-48 pr-2">
                       {dynamicCategories.map(cat => (
                         <div key={cat.name} className="flex items-center gap-4">
@@ -520,7 +533,7 @@ export default function Admin() {
               {/* Right Column */}
               <div className="md:col-span-2 flex flex-col gap-6">
 
-                <div className="bg-card border border-border-subtle rounded-xl p-6 shadow-sm flex flex-col">
+                <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex flex-col">
                    <h3 className="text-lg font-bold text-dark mb-2">Ward 7 risk score</h3>
                    <div className="relative w-full h-36 flex flex-col items-center mt-2">
                       <ResponsiveContainer width={240} height={140}>
@@ -560,12 +573,12 @@ export default function Admin() {
                    </div>
                 </div>
 
-                <div className="bg-card border border-border-subtle rounded-xl p-6 shadow-sm flex-1 flex flex-col min-h-0">
+                <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex-1 flex flex-col min-h-0">
                    <h3 className="text-lg font-bold text-dark mb-4">Top priority items</h3>
                                       <div className="flex flex-col flex-1 divide-y divide-border-subtle overflow-y-auto max-h-60 pr-2">
                      {dynamicTopItems.map((item, i) => (
                        <Link to={`/issue/${item.id}`} key={i} className="flex items-center gap-3 py-4 first:pt-2 last:pb-2 hover:bg-page/50 transition-colors cursor-pointer -mx-2 px-2 rounded-lg">
-                         <div className={`px-2 py-0.5 rounded font-bold text-[10px] whitespace-nowrap uppercase ${item.sev >= 8 ? 'bg-danger/10 text-[#dc2626]' : item.sev >= 6 ? 'bg-warning/20 text-[#b45309]' : 'bg-warning/10 text-[#d97706]'}`}>
+                         <div className={`px-2.5 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase ${item.sev >= 8 ? 'bg-danger/10 text-[#dc2626]' : item.sev >= 6 ? 'bg-warning/20 text-[#b45309]' : 'bg-warning/10 text-[#d97706]'}`}>
                             SEV {item.sev}
                          </div>
                          <div className="flex-1 min-w-0 flex items-center justify-between">
@@ -667,7 +680,7 @@ export default function Admin() {
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 border-card shadow-sm flex-shrink-0 ${iconBg}`}>
                          <Icon className={`w-5 h-5 ${iconColor}`} />
                       </div>
-                      <div className="flex-1 bg-card border border-border-subtle shadow-sm rounded-xl p-4 mt-0.5 hover:shadow-md transition-shadow">
+                      <div className="flex-1 bg-card border border-border-subtle shadow-sm rounded-2xl p-4 mt-0.5 hover:shadow-md transition-shadow">
                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-2 gap-1 sm:gap-4">
                            <span className="font-bold text-dark text-sm flex items-center gap-2">
                              {trace.agent} Agent

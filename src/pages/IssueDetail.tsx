@@ -237,12 +237,12 @@ export default function IssueDetail() {
   const dateString = issue.createdAt?.toDate ? issue.createdAt.toDate().toLocaleString() : "Just now";
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
       <Link to="/" className="inline-flex items-center text-sm text-dark font-medium hover:underline mb-6">
         &larr; Back to Map
       </Link>
       
-      <div className="bg-card rounded-xl shadow-sm border border-border-subtle overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border-subtle overflow-hidden">
         {/* Media Block */}
         <div className="bg-black w-full flex items-center justify-center min-h-[16rem] max-h-[60vh] overflow-hidden">
           {issue.mediaType === 'video' ? (
@@ -252,10 +252,10 @@ export default function IssueDetail() {
           )}
         </div>
         
-        <div className="p-6 md:p-8">
+        <div className="p-5 sm:p-6 md:p-8">
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <select 
-                  className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-mint focus:border-transparent ${
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full uppercase tracking-wider appearance-none cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-mint focus:border-transparent ${
                     issue.status === 'reported' ? 'bg-danger/10 text-danger' :
                     issue.status === 'in_progress' ? 'bg-warning/10 text-warning' :
                     issue.status === 'resolved' ? 'bg-success/10 text-success' :
@@ -276,7 +276,7 @@ export default function IssueDetail() {
             {issue.title || `${issue.category} Issue`}
           </h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-page p-4 rounded-xl border border-border-subtle">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-page p-4 sm:p-6 rounded-2xl border border-border-subtle">
              <div className="flex items-start gap-3">
                <User className="w-5 h-5 text-muted mt-0.5" />
                <div>
@@ -324,7 +324,7 @@ export default function IssueDetail() {
             const severityTrace = issue.agentTrace?.find(t => t.agent.toLowerCase() === 'severity');
             if (issue.severityScore === undefined || issue.severityScore === null) {
               return (
-                <div className="mb-8 p-6 rounded-xl border border-border-subtle bg-page flex items-center justify-center gap-3">
+                <div className="mb-8 p-6 rounded-2xl border border-border-subtle bg-page flex items-center justify-center gap-3">
                    <Loader2 className="w-5 h-5 animate-spin text-muted" />
                    <span className="text-sm font-medium text-muted italic">AI is assessing severity...</span>
                 </div>
@@ -346,7 +346,7 @@ export default function IssueDetail() {
             const progress = (issue.severityScore / 10) * arcLength;
 
             return (
-              <div className="mb-8 p-6 rounded-xl border border-border-subtle bg-card shadow-sm flex flex-col md:flex-row items-center md:items-start gap-8">
+              <div className="mb-8 p-6 rounded-2xl border border-border-subtle bg-card shadow-sm flex flex-col md:flex-row items-center md:items-start gap-8">
                 <div className="flex flex-col items-center shrink-0 w-32 relative">
                   <svg viewBox="0 0 100 55" className="w-full">
                     <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" strokeWidth="12" stroke="var(--bg-dark-accent)" strokeLinecap="round" opacity="0.1"/>
@@ -407,7 +407,7 @@ export default function IssueDetail() {
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 border-card shadow-sm flex-shrink-0 ${iconBg}`}>
                          <Icon className={`w-5 h-5 ${iconColor}`} />
                       </div>
-                      <div className="flex-1 bg-card border border-border-subtle shadow-sm rounded-xl p-4 mt-0.5 hover:shadow-md transition-shadow">
+                      <div className="flex-1 bg-card border border-border-subtle shadow-sm rounded-2xl p-4 mt-0.5 hover:shadow-md transition-shadow">
                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-2 gap-1 sm:gap-4">
                            <span className="font-bold text-dark text-sm">{trace.agent} Agent</span>
                            <span className="text-xs text-muted font-medium whitespace-nowrap">{formatRelativeTime(trace.timestamp)}</span>
@@ -424,14 +424,14 @@ export default function IssueDetail() {
           )}
 
           {user && user.uid !== issue.reporterId && !hasVerified && (
-            <div className="mb-8 block bg-page p-6 rounded-xl border border-border-subtle">
+            <div className="mb-8 block bg-page p-6 rounded-2xl border border-border-subtle">
                <h3 className="text-lg font-bold text-dark mb-2">Community Verification</h3>
                <p className="text-sm text-muted mb-4">Help the community by verifying if this issue still exists. You earn +5 points for verifying.</p>
                <div className="flex flex-col sm:flex-row gap-3">
                  <button
                    onClick={() => handleVerify('confirm')}
                    disabled={isVerifying}
-                   className="flex items-center justify-center gap-2 bg-dark text-white font-medium px-4 py-2.5 rounded-lg hover:opacity-90 transition flex-1 disabled:opacity-50"
+                   className="flex items-center justify-center gap-2 bg-dark bg-gradient-to-b from-white/15 to-transparent text-white font-medium px-4 py-2.5 rounded-lg hover:brightness-110 transition flex-1 disabled:opacity-50"
                  >
                    {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                    Confirm this exists
@@ -449,7 +449,7 @@ export default function IssueDetail() {
           )}
 
           {user && user.uid !== issue.reporterId && hasVerified && (
-            <div className="mb-8 block bg-success/10 p-4 rounded-xl border border-success/30 flex items-center justify-between">
+            <div className="mb-8 block bg-success/10 p-4 rounded-2xl border border-success/30 flex items-center justify-between">
               <div className="flex items-center gap-3">
                  <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-success" />
