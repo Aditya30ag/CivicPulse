@@ -34,9 +34,6 @@ const createMarkerIcon = (color: string) => L.divIcon({
 });
 
 const icons = {
-  reported: createMarkerIcon('#dc2626'),     // danger (red)
-  in_progress: createMarkerIcon('#d97706'),  // warning (orange/yellow)
-  resolved: createMarkerIcon('#0e9f7d')      // success (mint)
   reported: createMarkerIcon('var(--accent-danger)'),     // danger (red)
   in_progress: createMarkerIcon('var(--accent-warning)'),  // warning (orange/yellow)
   resolved: createMarkerIcon('var(--accent-success)')      // success (mint)
@@ -169,8 +166,8 @@ export default function Home() {
     if (!db) return;
     const reportsRef = collection(db, 'reports');
     const unsubscribe = onSnapshot(reportsRef, (snap) => {
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setReports(data?.sort((a, b) => getDate(b.createdAt).getTime() - getDate(a.createdAt).getTime()) || []);
+      const data = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+      setReports(data?.sort((a: any, b: any) => getDate(b.createdAt).getTime() - getDate(a.createdAt).getTime()) || []);
     });
     return () => unsubscribe();
   }, []);
@@ -202,26 +199,19 @@ export default function Home() {
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
               <AlertCircle className="w-5 h-5 text-danger" strokeWidth={2.25} />
             </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 shrink-0">
-        <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-danger"></div>
-            <span className="text-sm font-semibold text-muted">Reported</span>
+            <span className="text-sm font-bold text-muted uppercase tracking-wider">Reported</span>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-dark">{reportedCount || 0}</span>
           </div>
         </div>
-        
+
         <div className="bg-card border border-border-subtle border-l-4 border-l-warning rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
           <div className="flex items-center gap-2.5 mb-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
               <Clock className="w-5 h-5 text-warning" strokeWidth={2.25} />
             </div>
-        <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-warning"></div>
-            <span className="text-sm font-semibold text-muted">In progress</span>
+            <span className="text-sm font-bold text-muted uppercase tracking-wider">In progress</span>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-dark">{inProgressCount || 0}</span>
@@ -233,10 +223,7 @@ export default function Home() {
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5 text-success" strokeWidth={2.25} />
             </div>
-        <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
-            <span className="text-sm font-semibold text-muted">Resolved</span>
+            <span className="text-sm font-bold text-muted uppercase tracking-wider">Resolved</span>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-dark">{resolvedCount || 0}</span>
@@ -248,10 +235,7 @@ export default function Home() {
             <div className="w-9 h-9 rounded-lg bg-lavender/10 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5 text-lavender" strokeWidth={2.25} />
             </div>
-        <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-lavender"></div>
-            <span className="text-sm font-semibold text-muted">Your trust score</span>
+            <span className="text-sm font-bold text-muted uppercase tracking-wider">Your trust score</span>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-dark">87</span>
@@ -291,7 +275,6 @@ export default function Home() {
                   center={center}
                   radius={16}
                   pathOptions={{ fillColor: '#181e15', fillOpacity: 0.15, weight: 2, color: '#181e15' }}
-                  pathOptions={{ fillColor: '#dc2626', fillOpacity: 0.2, weight: 2, color: '#dc2626' }}
                 />
 
                 <ClusterLayer reports={reports} icons={icons} />

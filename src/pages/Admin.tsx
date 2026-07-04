@@ -128,7 +128,7 @@ export default function Admin() {
     const fetchWards = async () => {
       const wardsRef = collection(db, 'wards');
       const snap = await getDocs(wardsRef);
-      let currentWards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let currentWards = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
       if (currentWards.length === 0) {
         const sampleWards = [
@@ -255,7 +255,6 @@ export default function Admin() {
   const riskScore = Math.min(100, Math.round((highSeverityCount / Math.max(1, totalOpenReports)) * 100 * 1.5 + 20));
   const dynamicRiskData = [
     { name: 'Risk', value: riskScore || 1, fill: riskScore > 60 ? '#d97706' : '#0e9f7d' },
-    { name: 'Safe', value: 100 - (riskScore || 0), fill: '#e5e7e2' } 
     { name: 'Safe', value: 100 - (riskScore || 0), fill: '#e5e7eb' } 
   ];
 
@@ -274,7 +273,7 @@ export default function Admin() {
   }, {} as Record<string, number>);
   const catColors = ['#0e9f7d', '#9a4cf5', '#d97706', '#dc2626', '#3b82f6'];
   const dynamicCategories = Object.entries(categoryCounts)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
     .slice(0, 4)
     .map(([name, count], idx) => ({
        name,
@@ -318,9 +317,6 @@ export default function Admin() {
     `px-5 py-1.5 rounded-full font-bold text-sm whitespace-nowrap cursor-pointer transition-all duration-200 ${
       activeTab === tab
         ? 'bg-dark bg-gradient-to-b from-white/15 to-transparent text-white shadow-sm'
-    `px-5 py-1.5 rounded-full font-bold text-sm cursor-pointer transition-all duration-200 ${
-      activeTab === tab
-        ? 'bg-dark text-white shadow-sm'
         : 'text-muted hover:text-dark hover:bg-gray-100 hover:shadow-sm'
     }`;
 
@@ -337,7 +333,6 @@ export default function Admin() {
           </div>
         </div>
         <div className="flex border border-border-subtle p-1.5 rounded-full shadow-sm bg-white overflow-x-auto">
-        <div className="flex bg-transparent border border-border-subtle p-1.5 rounded-full shadow-sm bg-white">
           <button
             onClick={() => setActiveTab('queue')}
             className={getTabButtonClass('queue')}
@@ -438,62 +433,52 @@ export default function Admin() {
            <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-page">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
                  <div className="bg-card border border-border-subtle border-l-4 border-l-success rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
-                      <ClipboardList className="w-5 h-5 text-success" strokeWidth={2.25} />
-                    </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                 <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-mint"></div>
-                    <span className="text-sm font-semibold text-muted">Total open reports</span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-dark">{totalOpenReports}</span>
-                  </div>
-                </div>
-                
-                <div className="bg-card border border-border-subtle border-l-4 border-l-danger rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
-                      <AlertTriangle className="w-5 h-5 text-danger" strokeWidth={2.25} />
-                    </div>
-                <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-danger"></div>
-                    <span className="text-sm font-semibold text-muted">High severity</span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-dark">{highSeverityCount}</span>
-                  </div>
-                </div>
+                   <div className="flex items-center gap-2.5 mb-3">
+                     <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                       <ClipboardList className="w-5 h-5 text-success" strokeWidth={2.25} />
+                     </div>
+                     <span className="text-sm font-bold text-muted uppercase tracking-wider">Total open reports</span>
+                   </div>
+                   <div className="flex items-baseline gap-2">
+                     <span className="text-3xl font-bold text-dark">{totalOpenReports}</span>
+                   </div>
+                 </div>
+                 
+                 <div className="bg-card border border-border-subtle border-l-4 border-l-danger rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                   <div className="flex items-center gap-2.5 mb-3">
+                     <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
+                       <AlertTriangle className="w-5 h-5 text-danger" strokeWidth={2.25} />
+                     </div>
+                     <span className="text-sm font-bold text-muted uppercase tracking-wider">High severity</span>
+                   </div>
+                   <div className="flex items-baseline gap-2">
+                     <span className="text-3xl font-bold text-dark">{highSeverityCount}</span>
+                   </div>
+                 </div>
 
-                <div className="bg-card border border-border-subtle border-l-4 border-l-lavender rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-lavender/10 flex items-center justify-center shrink-0">
-                      <CheckCircle className="w-5 h-5 text-lavender" strokeWidth={2.25} />
-                    </div>
-                <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-lavender"></div>
-                    <span className="text-sm font-semibold text-muted">Resolved this week</span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-dark">{resolvedThisWeek}</span>
-                  </div>
-                </div>
+                 <div className="bg-card border border-border-subtle border-l-4 border-l-lavender rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                   <div className="flex items-center gap-2.5 mb-3">
+                     <div className="w-9 h-9 rounded-lg bg-lavender/10 flex items-center justify-center shrink-0">
+                       <CheckCircle className="w-5 h-5 text-lavender" strokeWidth={2.25} />
+                     </div>
+                     <span className="text-sm font-bold text-muted uppercase tracking-wider">Resolved this week</span>
+                   </div>
+                   <div className="flex items-baseline gap-2">
+                     <span className="text-3xl font-bold text-dark">{resolvedThisWeek}</span>
+                   </div>
+                 </div>
 
-                <div className="bg-card border border-border-subtle border-l-4 border-l-warning rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5 text-warning" strokeWidth={2.25} />
-                    </div>
-                    <span className="text-sm font-semibold text-muted">Avg resolution time</span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-dark">{avgResolutionTime}</span>
-                  </div>
-                </div>
+                 <div className="bg-card border border-border-subtle border-l-4 border-l-warning rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                   <div className="flex items-center gap-2.5 mb-3">
+                     <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                       <Clock className="w-5 h-5 text-warning" strokeWidth={2.25} />
+                     </div>
+                     <span className="text-sm font-bold text-muted uppercase tracking-wider">Avg resolution time</span>
+                   </div>
+                   <div className="flex items-baseline gap-2">
+                     <span className="text-3xl font-bold text-dark">{avgResolutionTime}</span>
+                   </div>
+                 </div>
               </div>
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -521,7 +506,6 @@ export default function Admin() {
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }} dy={10} />
                           <YAxis axisLine={false} tickLine={false} tick={false} width={0} />
-                          <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7e2', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                           <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--border-subtle)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                           <Line type="monotone" dataKey="new" stroke="#0e9f7d" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
                           <Line type="monotone" dataKey="resolved" stroke="#9a4cf5" strokeWidth={3} dot={false} />
@@ -592,10 +576,9 @@ export default function Admin() {
 
                 <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex-1 flex flex-col min-h-0">
                    <h3 className="text-lg font-bold text-dark mb-4">Top priority items</h3>
-                                      <div className="flex flex-col flex-1 divide-y divide-border-subtle overflow-y-auto max-h-60 pr-2">
+                   <div className="flex flex-col flex-1 divide-y divide-border-subtle overflow-y-auto max-h-60 pr-2">
                      {dynamicTopItems.map((item, i) => (
                        <Link to={`/issue/${item.id}`} key={i} className="flex items-center gap-3 py-4 first:pt-2 last:pb-2 hover:bg-page/50 transition-colors cursor-pointer -mx-2 px-2 rounded-lg">
-                         <div className={`px-2.5 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase ${item.sev >= 8 ? 'bg-danger/10 text-[#dc2626]' : item.sev >= 6 ? 'bg-warning/20 text-[#b45309]' : 'bg-warning/10 text-[#d97706]'}`}>
                          <div className={`px-2 py-0.5 rounded font-bold text-[10px] whitespace-nowrap uppercase ${item.sev >= 8 ? 'bg-danger/10 text-danger' : item.sev >= 6 ? 'bg-warning/20 text-[#b45309]' : 'bg-warning/10 text-warning'}`}>
                             SEV {item.sev}
                          </div>
