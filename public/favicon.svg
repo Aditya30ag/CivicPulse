@@ -1,0 +1,53 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="shieldClipFav">
+      <path d="M50 6
+               L80 19
+               V45
+               C80 67 66 81 50 91
+               C34 81 20 67 20 45
+               V19
+               Z"/>
+    </clipPath>
+  </defs>
+
+  <rect x="0" y="0" width="100" height="100" rx="20" fill="#ffffff"/>
+
+  <path d="M50 6
+           L80 19
+           V45
+           C80 67 66 81 50 91
+           C34 81 20 67 20 45
+           V19
+           Z"
+        fill="none"
+        stroke="#181e15"
+        stroke-width="5.5"
+        stroke-linejoin="round"/>
+
+  <path d="M26 36
+           H37
+           L43 23
+           L50.5 51
+           L56.5 28
+           L60.5 36
+           H74"
+        fill="none"
+        stroke="#181e15"
+        stroke-width="5.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <g clip-path="url(#shieldClipFav)">
+    <g fill="#181e15">
+      <circle cx="33" cy="70" r="8.5"/>
+      <path d="M16 96 C16 81, 25 73.5, 33 73.5 C41 73.5, 50 81, 50 96 Z"/>
+
+      <circle cx="50" cy="63" r="10"/>
+      <path d="M29.5 96 C29.5 79, 40 70.5, 50 70.5 C60 70.5, 70.5 79, 70.5 96 Z"/>
+
+      <circle cx="67" cy="70" r="8.5"/>
+      <path d="M50 96 C50 81, 59 73.5, 67 73.5 C75 73.5, 84 81, 84 96 Z"/>
+    </g>
+  </g>
+</svg>
