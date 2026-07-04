@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc, where } from 'firebase/firestore';
 import { Loader2, LayoutList, Map as MapIcon, Activity, MapPin, AlertTriangle, User, Eye, Search, CheckCircle, ArrowRight, Lightbulb, ArrowUpRight, ArrowDownRight, Minus, GitMerge } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -125,6 +125,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (!isAdmin || !db) return;
+    let cancelled = false;
     const fetchWards = async () => {
       const wardsRef = collection(db, 'wards');
       const snap = await getDocs(wardsRef);
@@ -143,6 +144,7 @@ export default function Admin() {
           currentWards.push({ id: nr.id, ...w });
         }
       }
+      if (cancelled) return;
       setWards(currentWards);
 
       for (const ward of currentWards) {
@@ -158,7 +160,21 @@ export default function Admin() {
         }
 
         if (shouldSweep) {
-          const repSnap = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(20)));
+          let reportsQuery;
+          if (ward.lastSweepAt) {
+            reportsQuery = query(
+              collection(db, 'reports'),
+              where('createdAt', '>', new Date(ward.lastSweepAt)),
+              orderBy('createdAt', 'desc')
+            );
+          } else {
+            reportsQuery = query(
+              collection(db, 'reports'),
+              orderBy('createdAt', 'desc'),
+              limit(20)
+            );
+          }
+          const repSnap = await getDocs(reportsQuery);
           const recentReports = repSnap.docs.map(d => ({
             category: d.data().category,
             severityScore: d.data().severityScore || 5
@@ -167,18 +183,20 @@ export default function Admin() {
           try {
             const forecast = await predictWardTrend(recentReports);
             const isoNow = new Date().toISOString();
+            if (cancelled) return;
             await updateDoc(doc(db, 'wards', ward.id), {
                lastSweepAt: isoNow,
                forecast
             });
             setWards(prev => prev.map(p => p.id === ward.id ? { ...p, lastSweepAt: isoNow, forecast } : p));
           } catch (e) {
-            console.error("Failed to predict trend for", ward.name, e);
+            if (!cancelled) console.error("Failed to predict trend for", ward.name, e);
           }
         }
       }
     };
     fetchWards();
+    return () => { cancelled = true; };
   }, [isAdmin]);
 
   useEffect(() => {
