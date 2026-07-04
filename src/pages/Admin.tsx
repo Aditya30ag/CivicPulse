@@ -43,10 +43,10 @@ const createMarkerIcon = (color: string) => L.divIcon({
 });
 
 const icons = {
-  reported: createMarkerIcon('#dc2626'),     // danger
-  in_progress: createMarkerIcon('#d97706'),  // warning
-  resolved: createMarkerIcon('#0e9f7d'),     // success
-  community_verified: createMarkerIcon('#9a4cf5') // lavender
+  reported: createMarkerIcon('var(--accent-danger)'),     // danger
+  in_progress: createMarkerIcon('var(--accent-warning)'),  // warning
+  resolved: createMarkerIcon('var(--accent-success)'),     // success
+  community_verified: createMarkerIcon('var(--accent-lavender)') // lavender
 };
 
 function HeatmapLayer({ data, visible }: { data: any[], visible: boolean }) {
@@ -254,7 +254,7 @@ export default function Admin() {
 
   const riskScore = Math.min(100, Math.round((highSeverityCount / Math.max(1, totalOpenReports)) * 100 * 1.5 + 20));
   const dynamicRiskData = [
-    { name: 'Risk', value: riskScore || 1, fill: riskScore > 60 ? '#f5a623' : '#16f0bf' },
+    { name: 'Risk', value: riskScore || 1, fill: riskScore > 60 ? '#d97706' : '#0e9f7d' },
     { name: 'Safe', value: 100 - (riskScore || 0), fill: '#e5e7eb' } 
   ];
 
@@ -271,7 +271,7 @@ export default function Admin() {
     acc[cat] = (acc[cat] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const catColors = ['#16f0bf', '#c190ff', '#f5a623', '#ef4444', '#3b82f6'];
+  const catColors = ['#0e9f7d', '#9a4cf5', '#d97706', '#dc2626', '#3b82f6'];
   const dynamicCategories = Object.entries(categoryCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
@@ -429,7 +429,7 @@ export default function Admin() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                  <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#16f0bf]"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-mint"></div>
                     <span className="text-sm font-semibold text-muted">Total open reports</span>
                   </div>
                   <div className="flex items-baseline gap-2">
@@ -439,7 +439,7 @@ export default function Admin() {
                 
                 <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-danger"></div>
                     <span className="text-sm font-semibold text-muted">High severity</span>
                   </div>
                   <div className="flex items-baseline gap-2">
@@ -449,7 +449,7 @@ export default function Admin() {
 
                 <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#c190ff]"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-lavender"></div>
                     <span className="text-sm font-semibold text-muted">Resolved this week</span>
                   </div>
                   <div className="flex items-baseline gap-2">
@@ -477,11 +477,11 @@ export default function Admin() {
                    <h3 className="text-lg font-bold text-dark mb-4 filter drop-shadow-sm">Reports over time</h3>
                    <div className="flex gap-4 mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#16f0bf]"></div>
+                        <div className="w-2 h-2 rounded-full bg-mint"></div>
                         <span className="text-xs font-semibold text-muted">New reports</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#c190ff]"></div>
+                        <div className="w-2 h-2 rounded-full bg-lavender"></div>
                         <span className="text-xs font-semibold text-muted">Resolved</span>
                       </div>
                     </div>
@@ -492,9 +492,9 @@ export default function Admin() {
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }} dy={10} />
                           <YAxis axisLine={false} tickLine={false} tick={false} width={0} />
-                          <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7e2', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                          <Line type="monotone" dataKey="new" stroke="#16f0bf" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
-                          <Line type="monotone" dataKey="resolved" stroke="#c190ff" strokeWidth={3} dot={false} />
+                          <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--border-subtle)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                          <Line type="monotone" dataKey="new" stroke="#0e9f7d" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
+                          <Line type="monotone" dataKey="resolved" stroke="#9a4cf5" strokeWidth={3} dot={false} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -565,7 +565,7 @@ export default function Admin() {
                                       <div className="flex flex-col flex-1 divide-y divide-border-subtle overflow-y-auto max-h-60 pr-2">
                      {dynamicTopItems.map((item, i) => (
                        <Link to={`/issue/${item.id}`} key={i} className="flex items-center gap-3 py-4 first:pt-2 last:pb-2 hover:bg-page/50 transition-colors cursor-pointer -mx-2 px-2 rounded-lg">
-                         <div className={`px-2 py-0.5 rounded font-bold text-[10px] whitespace-nowrap uppercase ${item.sev >= 8 ? 'bg-danger/10 text-[#dc2626]' : item.sev >= 6 ? 'bg-warning/20 text-[#b45309]' : 'bg-warning/10 text-[#d97706]'}`}>
+                         <div className={`px-2 py-0.5 rounded font-bold text-[10px] whitespace-nowrap uppercase ${item.sev >= 8 ? 'bg-danger/10 text-danger' : item.sev >= 6 ? 'bg-warning/20 text-[#b45309]' : 'bg-warning/10 text-warning'}`}>
                             SEV {item.sev}
                          </div>
                          <div className="flex-1 min-w-0 flex items-center justify-between">

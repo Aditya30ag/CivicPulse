@@ -30,11 +30,11 @@ const createMarkerIcon = (color: string) => L.divIcon({
 });
 
 const icons = {
-  reported: createMarkerIcon('#ef4444'),     // danger (red)
-  in_progress: createMarkerIcon('#f5a623'),  // warning (orange/yellow)
-  resolved: createMarkerIcon('#16f0bf')      // success (mint)
+  reported: createMarkerIcon('var(--accent-danger)'),     // danger (red)
+  in_progress: createMarkerIcon('var(--accent-warning)'),  // warning (orange/yellow)
+  resolved: createMarkerIcon('var(--accent-success)')      // success (mint)
 };
-const defaultIcon = createMarkerIcon('#181e15'); // dark accent
+const defaultIcon = createMarkerIcon('var(--bg-dark-accent)'); // dark accent
 
 function SetViewOnChange({ coords }: { coords: [number, number] }) {
   const map = useMap();
@@ -119,7 +119,7 @@ export default function Home() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 shrink-0">
         <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-danger"></div>
             <span className="text-sm font-semibold text-muted">Reported</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -129,7 +129,7 @@ export default function Home() {
         
         <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#f5a623]"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-warning"></div>
             <span className="text-sm font-semibold text-muted">In progress</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -139,7 +139,7 @@ export default function Home() {
 
         <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#16f0bf]"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
             <span className="text-sm font-semibold text-muted">Resolved</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -149,7 +149,7 @@ export default function Home() {
 
         <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#c190ff]"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-lavender"></div>
             <span className="text-sm font-semibold text-muted">Your trust score</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -162,13 +162,13 @@ export default function Home() {
         <div className="md:col-span-2 flex flex-col gap-4">
           <div className="flex gap-4">
             <button className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-page border border-border-subtle text-sm font-bold text-dark hover:bg-page/80 transition-colors">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></div> Reported
+              <div className="w-2.5 h-2.5 rounded-full bg-danger"></div> Reported
             </button>
             <button className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-page border border-border-subtle text-sm font-bold text-dark hover:bg-page/80 transition-colors">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#f5a623]"></div> In progress
+              <div className="w-2.5 h-2.5 rounded-full bg-warning"></div> In progress
             </button>
             <button className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-page border border-border-subtle text-sm font-bold text-dark hover:bg-page/80 transition-colors">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#16f0bf]"></div> Resolved
+              <div className="w-2.5 h-2.5 rounded-full bg-success"></div> Resolved
             </button>
           </div>
           <div className="flex-1 rounded-xl overflow-hidden border border-border-subtle shadow-sm relative z-0 bg-page">
@@ -190,7 +190,7 @@ export default function Home() {
                 <CircleMarker 
                   center={center}
                   radius={16}
-                  pathOptions={{ fillColor: '#ef4444', fillOpacity: 0.2, weight: 2, color: '#ef4444' }}
+                  pathOptions={{ fillColor: '#dc2626', fillOpacity: 0.2, weight: 2, color: '#dc2626' }}
                 />
 
                 {reports.map((report) => (
@@ -245,9 +245,9 @@ export default function Home() {
                 <Link to={`/issue/${report.id}`} key={report.id} className="py-3 group first:pt-2">
                   <div className="flex items-center gap-2 mb-1">
                      <div className={`w-2 h-2 rounded-full ${
-                       report.status === 'reported' ? 'bg-[#ef4444]' :
-                       report.status === 'in_progress' ? 'bg-[#f5a623]' :
-                       'bg-[#16f0bf]'
+                       report.status === 'reported' ? 'bg-danger' :
+                       report.status === 'in_progress' ? 'bg-warning' :
+                       'bg-success'
                      }`}></div>
                      <span className="font-bold text-sm text-dark group-hover:text-mint transition-colors line-clamp-1">{report.title || report.category}</span>
                   </div>
@@ -267,8 +267,8 @@ export default function Home() {
               {verifyReports.length > 0 ? verifyReports.map((report) => (
                 <Link to={`/issue/${report.id}`} key={report.id} className="py-3 group first:pt-2">
                   <div className="flex items-center gap-2 mb-1">
-                     <div className="w-2 h-2 rounded-full bg-[#c190ff]"></div>
-                     <span className="font-bold text-sm text-dark group-hover:text-[#c190ff] transition-colors line-clamp-1">Confirm: {report.category} near you?</span>
+                     <div className="w-2 h-2 rounded-full bg-lavender"></div>
+                     <span className="font-bold text-sm text-dark group-hover:text-lavender transition-colors line-clamp-1">Confirm: {report.category} near you?</span>
                   </div>
                   <div className="pl-4 text-xs font-medium text-muted flex gap-1">
                      <span>120m away</span>
