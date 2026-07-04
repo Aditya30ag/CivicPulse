@@ -3,6 +3,9 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MapPin, AlertCircle, Clock, CheckCircle2, ShieldCheck, Plus, Activity, UserCheck } from 'lucide-react';
@@ -34,14 +37,84 @@ const icons = {
   reported: createMarkerIcon('#dc2626'),     // danger (red)
   in_progress: createMarkerIcon('#d97706'),  // warning (orange/yellow)
   resolved: createMarkerIcon('#0e9f7d')      // success (mint)
+  reported: createMarkerIcon('var(--accent-danger)'),     // danger (red)
+  in_progress: createMarkerIcon('var(--accent-warning)'),  // warning (orange/yellow)
+  resolved: createMarkerIcon('var(--accent-success)')      // success (mint)
 };
-const defaultIcon = createMarkerIcon('#181e15'); // dark accent
+const defaultIcon = createMarkerIcon('var(--bg-dark-accent)'); // dark accent
 
 function SetViewOnChange({ coords }: { coords: [number, number] }) {
   const map = useMap();
   useEffect(() => {
     map.setView(coords, 14);
   }, [coords, map]);
+  return null;
+}
+
+function ClusterLayer({ reports, icons }: { reports: any[], icons: any }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    const markerClusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 80,
+      iconCreateFunction: (cluster: any) => {
+        const count = cluster.getChildCount();
+        const size = count > 100 ? 40 : count > 50 ? 35 : 30;
+        return L.divIcon({
+          html: `<div style="
+            background: linear-gradient(135deg, #ef4444 0%, #f5a623 100%);
+            width: ${size}px;
+            height: ${size}px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-weight: bold;
+            font-size: ${count > 100 ? '14px' : '12px'};
+            color: white;
+          ">${count}</div>`,
+          className: 'custom-cluster-icon',
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+          popupAnchor: [0, -size / 2]
+        });
+      }
+    });
+
+    reports.forEach((report) => {
+      if (report.geoPoint && report.geoPoint.lat && report.geoPoint.lng) {
+        const marker = L.marker([report.geoPoint.lat, report.geoPoint.lng], {
+          icon: icons[report.status as keyof typeof icons] || icons.reported
+        });
+
+        const popupContent = `
+          <div style="text-align: center; font-family: sans-serif; padding: 4px;">
+            <p style="font-weight: bold; color: #181e15; margin-bottom: 4px; line-height: 1.2;">${report.title || report.category}</p>
+            <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: bold; color: #666; display: block; margin-bottom: 8px;">
+              ${report.status.replace('_', ' ')}
+            </span>
+            <a href="/issue/${report.id}" style="color: #181e15; text-decoration: none; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              View Details →
+            </a>
+          </div>
+        `;
+
+        marker.bindPopup(popupContent);
+        markerClusterGroup.addLayer(marker);
+      }
+    });
+
+    map.addLayer(markerClusterGroup);
+
+    return () => {
+      map.removeLayer(markerClusterGroup);
+    };
+  }, [map, reports, icons]);
+
   return null;
 }
 
@@ -85,7 +158,7 @@ export default function Home() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setCenter([pos.coords.latitude, pos.coords.longitude]),
-        () => setCenter([37.7749, -122.4194]) // San Francisco default
+        () => setCenter([37.7749, -122.4194])
       );
     } else {
       setCenter([37.7749, -122.4194]);
@@ -129,6 +202,10 @@ export default function Home() {
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
               <AlertCircle className="w-5 h-5 text-danger" strokeWidth={2.25} />
             </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 shrink-0">
+        <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-danger"></div>
             <span className="text-sm font-semibold text-muted">Reported</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -141,6 +218,9 @@ export default function Home() {
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
               <Clock className="w-5 h-5 text-warning" strokeWidth={2.25} />
             </div>
+        <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-warning"></div>
             <span className="text-sm font-semibold text-muted">In progress</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -153,6 +233,9 @@ export default function Home() {
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5 text-success" strokeWidth={2.25} />
             </div>
+        <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
             <span className="text-sm font-semibold text-muted">Resolved</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -165,6 +248,9 @@ export default function Home() {
             <div className="w-9 h-9 rounded-lg bg-lavender/10 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5 text-lavender" strokeWidth={2.25} />
             </div>
+        <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-lavender"></div>
             <span className="text-sm font-semibold text-muted">Your trust score</span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -201,34 +287,14 @@ export default function Home() {
                   </Popup>
                 </Marker>
 
-                {/* You are here pulse effect */}
                 <CircleMarker 
                   center={center}
                   radius={16}
                   pathOptions={{ fillColor: '#181e15', fillOpacity: 0.15, weight: 2, color: '#181e15' }}
+                  pathOptions={{ fillColor: '#dc2626', fillOpacity: 0.2, weight: 2, color: '#dc2626' }}
                 />
 
-                {reports.map((report) => (
-                  report.geoPoint && report.geoPoint.lat && report.geoPoint.lng ? (
-                    <Marker 
-                      key={report.id} 
-                      position={[report.geoPoint.lat, report.geoPoint.lng]}
-                      icon={icons[report.status as keyof typeof icons] || icons.reported}
-                    >
-                      <Popup>
-                        <div className="text-center font-sans p-1">
-                          <p className="font-bold text-dark mb-1 leading-tight">{report.title || report.category}</p>
-                          <span className="text-[10px] uppercase tracking-wider font-bold text-muted block mb-2">
-                            {report.status.replace('_', ' ')}
-                          </span>
-                          <Link to={`/issue/${report.id}`} className="text-dark hover:text-mint text-xs font-bold flex items-center justify-center gap-1">
-                            View Details &rarr;
-                          </Link>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ) : null
-                ))}
+                <ClusterLayer reports={reports} icons={icons} />
               </MapContainer>
             ) : (
               <div className="h-full flex items-center justify-center">
@@ -236,16 +302,9 @@ export default function Home() {
               </div>
             )}
             
-            {/* Zoom controls overlaid on top-left like the image */}
             <div className="absolute top-4 left-4 z-[400] flex flex-col bg-white border border-border-subtle rounded-md shadow-sm overflow-hidden">
                <button 
                 className="w-8 h-8 flex items-center justify-center font-bold text-dark hover:bg-page transition-colors border-b border-border-subtle"
-                onClick={() => {
-                  const map = document.querySelector('.leaflet-container') as any;
-                  if (map && map._leaflet_id) {
-                     // Hacky way to access leaflet map instance if needed, but react-leaflet zoomControl=false is set, so we can ignore or let user use scroll
-                  }
-                }}
                >+</button>
                <button className="w-8 h-8 flex items-center justify-center font-bold text-dark hover:bg-page transition-colors">-</button>
             </div>

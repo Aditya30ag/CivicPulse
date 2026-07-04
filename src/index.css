@@ -14,6 +14,9 @@
     --accent-success: #0e9f7d;
     --accent-warning: #d97706; /* Darkened from f5a623 */
     --accent-danger: #dc2626; /* Darkened from ef4444 */
+    --nav-glass-bg: rgba(255, 255, 255, 0.45);      
+    --nav-glass-border: rgba(24, 30, 21, 0.06);
+    --nav-glass-highlight: rgba(255, 255, 255, 0.6); 
   }
   body {
     background-color: var(--bg-page);
