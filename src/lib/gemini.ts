@@ -8,6 +8,48 @@ interface AnalysisResult {
   reasoning: string;
 }
 
+const cleanAndParseJson = <T>(text: string, context: string): T => {
+  let cleanedText = text.trim();
+
+  // Extract content from markdown code fences if present (e.g. ```json ... ```)
+  const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/;
+  const match = codeBlockRegex.exec(cleanedText);
+  if (match) {
+    cleanedText = match[1].trim();
+  } else {
+    // If not in standard code fences, check for starting object/array syntax to strip stray wrapper text
+    const firstBrace = cleanedText.indexOf('{');
+    const lastBrace = cleanedText.lastIndexOf('}');
+    const firstBracket = cleanedText.indexOf('[');
+    const lastBracket = cleanedText.lastIndexOf(']');
+    
+    let startIdx = -1;
+    let endIdx = -1;
+    
+    if (firstBrace !== -1 && lastBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+      startIdx = firstBrace;
+      endIdx = lastBrace;
+    } else if (firstBracket !== -1 && lastBracket !== -1) {
+      startIdx = firstBracket;
+      endIdx = lastBracket;
+    }
+    
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      cleanedText = cleanedText.substring(startIdx, endIdx + 1).trim();
+    }
+  }
+
+  // Strip common leading/trailing characters (like backticks or stray single quotes/whitespace)
+  cleanedText = cleanedText.replace(/^[`'\s]+|[`'\s]+$/g, '').trim();
+
+  try {
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    console.error(`JSON parsing failed for ${context}. Raw:`, text, `Cleaned:`, cleanedText, `Error:`, error);
+    throw new Error(`Failed to parse the Gemini response for ${context}. The AI response was not in a valid JSON format.`);
+  }
+};
+
 export const analyzeIssueImage = async (imageUrl: string): Promise<AnalysisResult> => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
@@ -59,28 +101,7 @@ export const analyzeIssueImage = async (imageUrl: string): Promise<AnalysisResul
   });
 
   let rawText = result.text || "";
-  
-  const parseJson = (text: string) => {
-    let cleanedText = text.trim();
-    if (cleanedText.startsWith('\`\`\`json')) {
-      cleanedText = cleanedText.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
-    } else if (cleanedText.startsWith('\`\`\`')) {
-      cleanedText = cleanedText.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
-    }
-    return JSON.parse(cleanedText);
-  };
-
-  try {
-    return parseJson(rawText);
-  } catch (e) {
-    console.error("Failed to parse the first time, going to retry parsing logic", e);
-    try {
-      // Just retry the parseJson once as requested
-      return parseJson(rawText);
-    } catch (e2) {
-      throw new Error("Failed to parse Gemini response as JSON: " + (result.text || "empty"));
-    }
-  }
+  return cleanAndParseJson<AnalysisResult>(rawText, "issue image analysis");
 };
 
 export const checkDuplicateIssue = async (newDescription: string, existingDescription: string): Promise<{similarity: number, isDuplicate: boolean}> => {
@@ -108,22 +129,7 @@ Description 2: ${existingDescription}`;
   });
 
   let rawText = result.text || "";
-  
-  const parseJson = (text: string) => {
-    let cleanedText = text.trim();
-    if (cleanedText.startsWith('\`\`\`json')) {
-      cleanedText = cleanedText.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
-    } else if (cleanedText.startsWith('\`\`\`')) {
-      cleanedText = cleanedText.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
-    }
-    return JSON.parse(cleanedText);
-  };
-
-  try {
-    return parseJson(rawText);
-  } catch (e) {
-    return parseJson(rawText);
-  }
+  return cleanAndParseJson<{similarity: number, isDuplicate: boolean}>(rawText, "duplicate issue check");
 };
 
 export const predictWardTrend = async (recentReports: {category: string, severityScore: number}[]): Promise<{category: string, trend: "increasing"|"stable"|"decreasing", confidence: "low"|"medium"|"high", reasoning: string}> => {
@@ -152,20 +158,5 @@ export const predictWardTrend = async (recentReports: {category: string, severit
   });
 
   let rawText = result.text || "";
-  
-  const parseJson = (text: string) => {
-    let cleanedText = text.trim();
-    if (cleanedText.startsWith('\`\`\`json')) {
-      cleanedText = cleanedText.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
-    } else if (cleanedText.startsWith('\`\`\`')) {
-      cleanedText = cleanedText.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
-    }
-    return JSON.parse(cleanedText);
-  };
-
-  try {
-    return parseJson(rawText);
-  } catch (e) {
-    return parseJson(rawText);
-  }
+  return cleanAndParseJson<{category: string, trend: "increasing"|"stable"|"decreasing", confidence: "low"|"medium"|"high", reasoning: string}>(rawText, "ward trend prediction");
 };
