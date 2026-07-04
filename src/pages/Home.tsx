@@ -33,11 +33,6 @@ const createMarkerIcon = (color: string) => L.divIcon({
 });
 
 const icons = {
-  reported: createMarkerIcon('#ef4444'),
-  in_progress: createMarkerIcon('#f5a623'),
-  resolved: createMarkerIcon('#16f0bf')
-};
-const defaultIcon = createMarkerIcon('#181e15');
   reported: createMarkerIcon('var(--accent-danger)'),     // danger (red)
   in_progress: createMarkerIcon('var(--accent-warning)'),  // warning (orange/yellow)
   resolved: createMarkerIcon('var(--accent-success)')      // success (mint)
