@@ -314,9 +314,9 @@ export default function Admin() {
   const getTabButtonClass = (
     tab: 'queue' | 'map' | 'activity' | 'insights'
   ) =>
-    `px-5 py-1.5 rounded-full font-bold text-sm whitespace-nowrap cursor-pointer transition-all duration-200 ${
+    `px-5 py-1.5 rounded-full font-bold text-sm cursor-pointer transition-all duration-200 ${
       activeTab === tab
-        ? 'bg-dark bg-gradient-to-b from-white/15 to-transparent text-white shadow-sm'
+        ? 'bg-dark text-white shadow-sm'
         : 'text-muted hover:text-dark hover:bg-gray-100 hover:shadow-sm'
     }`;
 
@@ -332,7 +332,7 @@ export default function Admin() {
             <p className="text-muted mt-0.5 font-medium text-sm">Civic Pulse Admin • Ward 7 Overview</p>
           </div>
         </div>
-        <div className="flex border border-border-subtle p-1.5 rounded-full shadow-sm bg-white overflow-x-auto">
+        <div className="flex bg-transparent border border-border-subtle p-1.5 rounded-full shadow-sm bg-white">
           <button
             onClick={() => setActiveTab('queue')}
             className={getTabButtonClass('queue')}
