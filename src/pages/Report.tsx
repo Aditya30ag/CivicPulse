@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
@@ -65,6 +65,38 @@ export default function Report() {
   
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+  const savedDraft = localStorage.getItem("reportDraft");
+
+  if (savedDraft) {
+    try {
+      const draft = JSON.parse(savedDraft);
+
+      setTitle(draft.title || "");
+      setDescription(draft.description || "");
+      setCategory(draft.category || "");
+      setSeverity(draft.severity || 5);
+    } catch (error) {
+      console.error("Failed to load draft:", error);
+    }
+  }
+}, []);
+
+useEffect(() => {
+  if (!title && !description && !category && severity === 5) {
+    localStorage.removeItem("reportDraft");
+    return;
+  }
+
+  const draft = {
+    title,
+    description,
+    category,
+    severity,
+  };
+
+  localStorage.setItem("reportDraft", JSON.stringify(draft));
+}, [title, description, category, severity]);
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
@@ -254,6 +286,7 @@ export default function Report() {
         }
 
         await updateDoc(doc(db, 'reports', foundDuplicate.id), updateData);
+        localStorage.removeItem("reportDraft");       
         navigate(`/issue/${foundDuplicate.id}`);
         return;
       }
@@ -296,6 +329,7 @@ export default function Report() {
         ],
         createdAt: serverTimestamp()
       });
+      localStorage.removeItem("reportDraft");
 
       navigate(`/issue/${docRef.id}`);
     } catch (err: any) {
@@ -561,13 +595,18 @@ export default function Report() {
                   <div>
                     <label className="block text-sm font-semibold text-dark mb-2" htmlFor="description">Description *</label>
                     <textarea
-                      id="description"
-                      rows={5}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Provide context or details about the issue..."
-                      className="w-full bg-card border border-border-subtle rounded-lg px-4 py-3 text-sm text-dark focus:outline-none focus:ring-1 focus:border-dark resize-y"
-                    ></textarea>
+  id="description"
+  rows={5}
+  maxLength={500}
+  value={description}
+  onChange={(e) => setDescription(e.target.value)}
+  placeholder="Provide context or details about the issue..."
+  className="w-full bg-card border border-border-subtle rounded-lg px-4 py-3 text-sm text-dark focus:outline-none focus:ring-1 focus:border-dark resize-y"
+/>
+
+<div className="mt-1 text-right text-xs text-muted">
+  {description.length}/500 characters
+</div>
                   </div>
 
                   {/* Submit */}
