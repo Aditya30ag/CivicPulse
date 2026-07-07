@@ -44,49 +44,59 @@ Cities struggle with civic issue management—potholes, water leaks, and infrast
 ```mermaid
 graph TD
     Client[React/Vite Frontend] --> Auth[Firebase Authentication]
-    Client --> Storage[Cloudinary Image Storage]
     Client --> DB[(Firebase Firestore)]
-    
-    subgraph Google SDK
-    AI[Google Gen AI SDK / Gemini 2.5]
-    end
-    
-    Client --> AI
+
+    Client --> Server[Express Backend API]
+
+    Server --> AI[Gemini 2.5 Flash]
+    Server --> Storage[Cloudinary]
+
     DB -. Realtime Streams .-> Client
-    
+
     subgraph Core Features
-    Map[Leaflet Geospatial Engine]
-    Geo[Geofire-common Distance Math]
-    Chart[Recharts Data Viz]
+        Map[Leaflet Geospatial Engine]
+        Geo[Geofire-common Distance Math]
+        Chart[Recharts Data Viz]
     end
-    
+
     Client --> Map
     Client --> Geo
     Client --> Chart
-````
+```
 ```mermaid
 sequenceDiagram
     participant User
     participant Frontend
+    participant Express API
     participant Perception Agent
     participant Deduplication Agent
     participant Orchestrator
     participant DB
 
     User->>Frontend: Upload Image & Location
-    Frontend->>Perception Agent: Analyze Image (Gemini Flash)
-    Perception Agent-->>Frontend: Returns Category, Severity (1-10), Reasoning
+
+    Frontend->>Express API: Send image for analysis
+    Express API->>Perception Agent: Analyze Image (Gemini Flash)
+    Perception Agent-->>Express API: Category, Severity, Reasoning
+    Express API-->>Frontend: AI Analysis
+
     Frontend->>Deduplication Agent: Geohash lookup (100m radius)
-    Deduplication Agent->>DB: Fetch open issues nearby
-    Deduplication Agent->>Deduplication Agent: Semantic similarity check (Gemini)
-    Deduplication Agent-->>Orchestrator: Duplicate boolean & similarity
-    
-    alt Is Duplicate
-        Orchestrator->>Orchestrator: Calculate severity escalation
-        Orchestrator->>DB: Merge & update existing report (Trace Logged)
-    else Is Unique
-        Orchestrator->>DB: Create new report (Trace Logged)
+    Deduplication Agent->>DB: Fetch nearby reports
+    Deduplication Agent->>Express API: Semantic similarity request
+    Express API->>Perception Agent: Compare reports
+    Perception Agent-->>Express API: Similarity
+    Express API-->>Deduplication Agent: Duplicate result
+
+    alt Duplicate
+        Orchestrator->>DB: Merge existing report
+    else Unique
+        Orchestrator->>DB: Create report
     end
+
+    Frontend->>Express API: Upload image
+    Express API->>Storage: Upload to Cloudinary
+    Storage-->>Express API: Secure image URL
+    Express API-->>Frontend: Image URL
 ```
 ```mermaid
 graph TD
@@ -115,10 +125,11 @@ graph TD
 | Styling            | Tailwind CSS v4, Framer Motion, Lucide Icons         |
 | Geospatial         | Leaflet, React-Leaflet, Leaflet.Heat, Geofire-common |
 | Data Visualization | Recharts                                             |
-| Backend & Database | Firebase Firestore (Realtime NoSQL)                  |
-| Authentication     | Firebase Authentication (Google Provider)            |
-| AI Models          | Google Gemini 2.5 Flash (`@google/genai` SDK)        |
-| Blob Storage       | Cloudinary                                           |
+| Backend | Express.js |
+| Database | Firebase Firestore (Realtime NoSQL) |
+| Authentication | Firebase Authentication (Google Provider) |
+| AI Models | Google Gemini 2.5 Flash (via secure Express backend) |
+| Blob Storage | Cloudinary (via secure Express backend) |
 ## Google Technologies Used
 
 Civic Pulse is built on Google's AI and cloud ecosystem to deliver an intelligent, scalable, and real-time civic issue management platform.
@@ -126,7 +137,7 @@ Civic Pulse is built on Google's AI and cloud ecosystem to deliver an intelligen
 | Technology                                     | Purpose                                                                                                                                      |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Google AI Studio**                           | Core development and deployment platform used for building, testing, and deploying the application.                                          |
-| **Gemini 2.5 Flash**                           | Powers AI-driven image analysis, issue categorization, severity assessment, structured data extraction, and intelligent reasoning workflows. |
+| **Gemini 2.5 Flash**                           | Powers AI-driven image analysis through secure server-side API requests, issue categorization, severity assessment, structured data extraction, and intelligent reasoning workflows. |
 | **Firebase Firestore**                         | Serves as the real-time NoSQL database for storing civic reports, user data, verification records, agent traces, and analytics.              |
 | **Firebase Authentication**                    | Provides secure Google Sign-In authentication for citizens and administrators.                                                               |
 | **Firebase Hosting / Google Cloud Deployment** | Used for application deployment and public accessibility.                                                                                    |
@@ -136,10 +147,10 @@ Civic Pulse is built on Google's AI and cloud ecosystem to deliver an intelligen
 Civic Pulse does not treat AI as a mere chatbot; it orchestrates a specialized intelligence pipeline.
 
 ### Perception Agent
-Extracts structured attributes, title tags, and a localized severity rating directly from an uploaded image using Gemini 2.5 Flash.
+Extracts structured attributes, title tags, and a localized severity rating from uploaded images through the Express backend using Gemini 2.5 Flash, title tags, and a localized severity rating directly from an uploaded image using Gemini 2.5 Flash.
 
 ### Deduplication Agent
-Prevents database bloating by calculating spatial bounds using the user's geohash, querying Firestore for reports within a 100-meter radius, and evaluating semantic similarity to automatically merge duplicate reports or escalate severity when necessary.
+Prevents database bloating by calculating spatial bounds using the user's geohash, querying Firestore for reports within a 100-meter radius, and evaluating semantic similarity through secure backend requests to automatically merge duplicate reports or escalate severity when necessary.
 
 ### Forecasting Agent
 Continuously analyzes ward-level data within the administrative dashboard and generates predictive insights, identifying whether civic issues such as potholes, garbage accumulation, or water leakages are expected to increase or decrease over the next 14 days based on recent reporting patterns.

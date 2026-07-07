@@ -8,30 +8,25 @@ import { analyzeIssueImage, checkDuplicateIssue } from '../lib/gemini';
 import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
 
 const uploadToCloudinary = async (file: File): Promise<string> => {
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-  
-  if (!cloudName || !uploadPreset) {
-    throw new Error('Cloudinary configuration is missing. Please check your .env file or environment variables.');
-  }
 
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', uploadPreset);
+    const formData = new FormData();
+    formData.append("file", file);
 
-  const resourceType = 'auto'; // automatically detects image or video
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
-    method: 'POST',
-    body: formData,
-  });
+    const API_URL = import.meta.env.VITE_API_URL;
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error?.message || 'Failed to upload to Cloudinary');
-  }
+    const response =  await fetch(`${API_URL}/upload`, {
+      method: "POST",
+      body: formData,
+    });
 
-  const data = await response.json();
-  return data.secure_url;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to upload image");
+    }
+
+    const data = await response.json();
+
+    return data.data.secure_url;
 };
 
 const CATEGORIES = [
