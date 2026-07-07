@@ -39,7 +39,7 @@ We agree to restrict the following behaviors in our community. Instances, threat
 1. **Misleading identity.** Impersonating someone else for any reason, or pretending to be someone else to evade enforcement actions.
 2. **Failing to credit sources.** Not properly crediting the sources of content you contribute.
 3. **Promotional materials**. Sharing marketing or other commercial content in a way that is outside the norms of the community.
-4. **Irresponsible communication.** Failing to responsibly present content which includes, links or describes any other restricted behaviors.
+4. **Irresponsible communication.** Failing to responsibly present content which includes, links, or describes any other restricted behaviors.
 
 
 ## Reporting an Issue
