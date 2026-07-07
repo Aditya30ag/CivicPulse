@@ -20,10 +20,9 @@ By contributing to this project, you agree to abide by our code of conduct and c
 
 ## Code of Conduct
 
-To foster an inclusive, welcoming, and productive community, we ask all contributors to:
-- Be respectful, professional, and empathetic to others.
-- Focus on constructive feedback and collaboration.
-- Avoid any form of harassment, discrimination, or offensive behavior.
+By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Please take a moment to read it before contributing. We expect all contributors to help foster a welcoming, respectful, and inclusive community.
 
 ---
 
