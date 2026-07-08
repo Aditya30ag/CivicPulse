@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc } from 'firebase/firestore';
@@ -339,6 +339,19 @@ export default function Admin() {
           >
             Queue
           </button>
+
+          <NavLink
+            to="/admin/reports"
+            className={({ isActive }) =>
+              `px-5 py-1.5 rounded-full font-bold text-sm transition-all duration-200 ${
+                isActive
+                  ? "bg-dark text-white shadow-sm"
+                  : "text-muted hover:text-dark hover:bg-gray-100 hover:shadow-sm"
+              }`
+            }
+          >
+            Reports
+          </NavLink>
 
           <button
             onClick={() => setActiveTab('map')}

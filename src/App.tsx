@@ -15,6 +15,7 @@ import IssueDetail from './pages/IssueDetail';
 import Leaderboard from './pages/Leaderboard';
 import Admin from './pages/Admin';
 import Profile from './pages/Profile';
+import AdminReports from './pages/AdminReports';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/issue/:id" element={<IssueDetail />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/reports" element={<AdminReports />} />
             
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
