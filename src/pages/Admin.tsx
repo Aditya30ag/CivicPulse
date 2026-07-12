@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc, where } from 'firebase/firestore';
 import { Loader2, LayoutList, Map as MapIcon, Activity, MapPin, AlertTriangle, User, Eye, Search, CheckCircle, ArrowRight, Lightbulb, ArrowUpRight, ArrowDownRight, Minus, GitMerge, Clock, ClipboardList } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -158,22 +158,36 @@ export default function Admin() {
         }
 
         if (shouldSweep) {
-          const repSnap = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(20)));
+          let repQuery;
+          if (ward.lastSweepAt) {
+            repQuery = query(collection(db, 'reports'), where('createdAt', '>', new Date(ward.lastSweepAt)), orderBy('createdAt', 'desc'), limit(20));
+          } else {
+            repQuery = query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(20));
+          }
+          const repSnap = await getDocs(repQuery);
           const recentReports = repSnap.docs.map(d => ({
             category: d.data().category,
             severityScore: d.data().severityScore || 5
           }));
 
-          try {
-            const forecast = await predictWardTrend(recentReports);
+          if (recentReports.length > 0) {
+            try {
+              const forecast = await predictWardTrend(recentReports);
+              const isoNow = new Date().toISOString();
+              await updateDoc(doc(db, 'wards', ward.id), {
+                 lastSweepAt: isoNow,
+                 forecast
+              });
+              setWards(prev => prev.map(p => p.id === ward.id ? { ...p, lastSweepAt: isoNow, forecast } : p));
+            } catch (e) {
+              console.error("Failed to predict trend for", ward.name, e);
+            }
+          } else {
             const isoNow = new Date().toISOString();
             await updateDoc(doc(db, 'wards', ward.id), {
-               lastSweepAt: isoNow,
-               forecast
+               lastSweepAt: isoNow
             });
-            setWards(prev => prev.map(p => p.id === ward.id ? { ...p, lastSweepAt: isoNow, forecast } : p));
-          } catch (e) {
-            console.error("Failed to predict trend for", ward.name, e);
+            setWards(prev => prev.map(p => p.id === ward.id ? { ...p, lastSweepAt: isoNow } : p));
           }
         }
       }
