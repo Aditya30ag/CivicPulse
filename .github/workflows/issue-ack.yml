@@ -1,0 +1,31 @@
+name: Issue Acknowledgement
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  acknowledge:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Comment with acknowledgement
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = `Thanks for opening this issue 🎉, @${issue.user.login}!\n\n` +
+              ` We'll look into it as soon as possible, estimated time for response is 5–8 hrs. \n\n Don't raise PR unless assigned to you.`+
+              `In the meantime, please ensure you've filled out all required details. ` +
+              `If you have more information (logs, screenshots, reproduction steps), feel free to add them here.\n\n` +
+              `Your contributions are highly appreciated!😊 `+
+              `- Hit the star ⭐ button to show your support!\n` +
+              `If your issue goes stale for more than one day, you can tag and comment on this same issue by tagging **@singh-odyssey** `+
+              `— singh-odyssey`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body,
+            });
