@@ -1,53 +1,267 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* ── Google Fonts ──────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* ── Design Tokens ─────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --bg-page: #f7f8f6;
-    --bg-card: #ffffff;
-    --bg-dark-accent: #181e15;
-    --text-primary: #181e15;
-    --text-secondary: #6b7268;
-    --border-subtle: #e5e7e2;
-    --accent-mint: #0e9f7d; /* Darkened for better text contrast */
-    --accent-lavender: #9a4cf5; /* Darkened */
-    --accent-success: #0e9f7d;
-    --accent-warning: #d97706; /* Darkened from f5a623 */
-    --accent-danger: #dc2626; /* Darkened from ef4444 */
-    --nav-glass-bg: rgba(255, 255, 255, 0.45);      
-    --nav-glass-border: rgba(24, 30, 21, 0.06);
-    --nav-glass-highlight: rgba(255, 255, 255, 0.6); 
+    /* Brand palette */
+    --ink:        #16283D;   /* deep blueprint navy */
+    --grid:       #2E4A66;   /* gridline blue */
+    --paper:      #EEF1EC;   /* cool paper white */
+    --paper-dim:  #DDE3DC;   /* recessed panels */
+    --hazard:     #F2B705;   /* survey yellow — primary accent */
+    --signal:     #D6483D;   /* signal red — critical / high severity */
+    --verified:   #4C8F68;   /* verified green — resolved / low sev / success */
+
+    /* Legacy aliases kept so any surviving Tailwind refs still resolve */
+    --bg-page:          var(--paper);
+    --bg-card:          #ffffff;
+    --bg-dark-accent:   var(--ink);
+    --text-primary:     var(--ink);
+    --text-secondary:   #5A6B7A;
+    --border-subtle:    var(--paper-dim);
+
+    /* OLD accent aliases → mapped to new tokens so old class names still work */
+    --accent-mint:      var(--verified);
+    --accent-lavender:  var(--hazard);
+    --accent-success:   var(--verified);
+    --accent-warning:   var(--hazard);
+    --accent-danger:    var(--signal);
+
+    /* Nav */
+    --nav-glass-bg:        var(--ink);
+    --nav-glass-border:    var(--grid);
+    --nav-glass-highlight: rgba(255,255,255,0.04);
   }
+
+  /* ── Base styles ───────────────────────────────────────────────────── */
   body {
-    background-color: var(--bg-page);
-    background-image:
-      radial-gradient(circle at 12% -10%, rgba(14, 159, 125, 0.07), transparent 40%),
-      radial-gradient(circle at 90% 0%, rgba(154, 76, 245, 0.05), transparent 35%);
-    background-attachment: fixed;
-    color: var(--text-primary);
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* ── Universal focus ring ──────────────────────────────────────────── */
+  *:focus-visible {
+    outline: 3px solid var(--hazard);
+    outline-offset: 2px;
+  }
 }
 
+/* ── Tailwind theme extension ──────────────────────────────────────────── */
+@theme {
+  /* Fonts */
+  --font-sans:    'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Big Shoulders Display', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Color tokens */
+  --color-ink:        var(--ink);
+  --color-grid:       var(--grid);
+  --color-paper:      var(--paper);
+  --color-paper-dim:  var(--paper-dim);
+  --color-hazard:     var(--hazard);
+  --color-signal:     var(--signal);
+  --color-verified:   var(--verified);
+
+  /* Legacy aliases so old Tailwind class names continue to compile */
+  --color-page:         var(--paper);
+  --color-card:         #ffffff;
+  --color-dark:         var(--ink);
+  --color-text-main:    var(--ink);
+  --color-text-muted:   #5A6B7A;
+  --color-border-subtle: var(--paper-dim);
+  --color-mint:         var(--verified);
+  --color-lavender:     var(--hazard);
+  --color-success:      var(--verified);
+  --color-warning:      var(--hazard);
+  --color-danger:       var(--signal);
+  --color-primary:      var(--ink);
+}
+
+/* ── Blueprint grid mixin ──────────────────────────────────────────────── */
+/* Apply .bp-grid to any dark surface (nav, hero, admin header, etc.) */
+.bp-grid {
+  background-color: var(--ink);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    radial-gradient(ellipse at 90% 10%, rgba(242,183,5,0.07) 0%, transparent 55%);
+  background-size: 40px 40px, 40px 40px, 100% 100%;
+}
+
+/* ── Asset-tag card ────────────────────────────────────────────────────── */
+/* Outer wrapper: white card with a left severity-stub */
+.asset-tag {
+  display: flex;
+  background: #fff;
+  border: 1px solid var(--paper-dim);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Left stub column */
+.asset-tag__stub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  min-width: 64px;
+  padding: 12px 0;
+  border-right: 1px dashed var(--paper-dim);
+  position: relative;
+  gap: 4px;
+}
+
+/* Perforation dots */
+.asset-tag__stub::before,
+.asset-tag__stub::after {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--paper-dim);
+  position: absolute;
+}
+.asset-tag__stub::before { top: -5px; }
+.asset-tag__stub::after  { bottom: -5px; }
+
+.asset-tag__score {
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-size: 2.25rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.asset-tag__score--high   { color: var(--signal); }
+.asset-tag__score--medium { color: var(--hazard); }
+.asset-tag__score--low    { color: var(--verified); }
+
+.asset-tag__body {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+/* ── Status chips ──────────────────────────────────────────────────────── */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.status-chip--open     { background: rgba(242,183,5,0.12);  color: #8a6500; border: 1px solid rgba(242,183,5,0.3); }
+.status-chip--progress { background: rgba(242,183,5,0.08);  color: #8a6500; border: 1px solid rgba(242,183,5,0.2); }
+.status-chip--verified { background: rgba(76,143,104,0.12); color: #2d6645; border: 1px solid rgba(76,143,104,0.3); }
+.status-chip--resolved { background: rgba(76,143,104,0.12); color: #2d6645; border: 1px solid rgba(76,143,104,0.3); }
+.status-chip--signal   { background: rgba(214,72,61,0.10);  color: #8a1f1a; border: 1px solid rgba(214,72,61,0.25); }
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+/* Primary CTA: solid hazard yellow, hard offset shadow */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background-color: var(--hazard);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 3px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.28);
+  transition: box-shadow 150ms ease, transform 150ms ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  box-shadow: 4px 5px 0 rgba(0,0,0,0.30);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  box-shadow: 1px 1px 0 rgba(0,0,0,0.20);
+  transform: translateY(1px);
+}
+.btn-primary:disabled,
+.btn-primary[disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Secondary: outlined, transparent */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: transparent;
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 3px;
+  border: 1.5px solid var(--grid);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-secondary:hover {
+  border-color: var(--hazard);
+  color: var(--hazard);
+  background: rgba(242,183,5,0.05);
+}
+.btn-secondary:disabled,
+.btn-secondary[disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── Ticker animation (agent / activity feed) ──────────────────────────── */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes ring-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(214,72,61,0.5); }
+  70%  { box-shadow: 0 0 0 12px rgba(214,72,61,0); }
+  100% { box-shadow: 0 0 0 0   rgba(214,72,61,0); }
+}
+
+/* Critical pin pulse class */
+.marker-pulse {
+  animation: ring-pulse 1.8s ease-out infinite;
+  border-radius: 50%;
+}
+
+/* Pause all motion when prefers-reduced-motion is set */
+@media (prefers-reduced-motion: reduce) {
+  .marker-pulse           { animation: none; }
+  .ticker-scroll          { animation: none; }
+  *                       { transition-duration: 0.01ms !important; }
+}
+
+/* ── Leaflet icon override ─────────────────────────────────────────────── */
 .custom-leaflet-icon {
   background: transparent;
   border: none;
 }
-
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-page: var(--bg-page);
-  --color-card: var(--bg-card);
-  --color-dark: var(--bg-dark-accent);
-  --color-text-main: var(--text-primary);
-  --color-text-muted: var(--text-secondary);
-  --color-border-subtle: var(--border-subtle);
-  --color-mint: var(--accent-mint);
-  --color-lavender: var(--accent-lavender);
-  --color-success: var(--accent-success);
-  --color-warning: var(--accent-warning);
-  --color-danger: var(--accent-danger);
-  
-  --color-primary: var(--bg-dark-accent);
-}
+.custom-cluster-icon { background: transparent; border: none; }

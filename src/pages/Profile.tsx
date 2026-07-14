@@ -5,6 +5,16 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { MapPin, Clock, Loader2 } from 'lucide-react';
 
+function statusChipClass(status: string) {
+  switch (status) {
+    case 'reported':           return 'status-chip status-chip--open';
+    case 'in_progress':        return 'status-chip status-chip--progress';
+    case 'community_verified': return 'status-chip status-chip--verified';
+    case 'resolved':           return 'status-chip status-chip--resolved';
+    default:                   return 'status-chip';
+  }
+}
+
 export default function Profile() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -47,10 +57,34 @@ export default function Profile() {
 
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6 mt-4">
-        <div className="bg-primary h-24"></div>
+      {/* Profile card */}
+      <div
+        className="overflow-hidden mb-5 mt-4"
+        style={{
+          background: '#fff',
+          border: '1px solid var(--paper-dim)',
+          borderRadius: '3px',
+          boxShadow: '0 2px 8px rgba(22,40,61,0.07)',
+        }}
+      >
+        {/* Banner — blueprint grid */}
+        <div
+          className="h-24 bp-grid"
+          style={{ borderBottom: '1px solid var(--grid)' }}
+        />
+
+        {/* Avatar + name */}
         <div className="px-6 flex flex-col items-center -mt-12 mb-6">
-          <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-md overflow-hidden flex items-center justify-center text-4xl text-gray-300">
+          <div
+            className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center"
+            style={{
+              background: 'var(--paper)',
+              border: '4px solid var(--hazard)',
+              boxShadow: '0 4px 14px rgba(22,40,61,0.14)',
+              color: 'var(--text-secondary)',
+              fontSize: '2.5rem',
+            }}
+          >
              {user?.photoURL ? (
                <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
              ) : (
@@ -59,51 +93,124 @@ export default function Profile() {
                </svg>
              )}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">{user?.displayName || 'My Profile'}</h1>
-          <p className="text-gray-500 text-sm">{user?.email}</p>
+          <h1
+            className="uppercase mt-3"
+            style={{
+              fontFamily: "'Big Shoulders Display', sans-serif",
+              fontWeight: 900,
+              fontSize: '1.75rem',
+              color: 'var(--ink)',
+              lineHeight: 1,
+            }}
+          >
+            {user?.displayName || 'My Profile'}
+          </h1>
+          <p
+            className="mt-1"
+            style={{
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '0.75rem',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            {user?.email}
+          </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">My Reports</h2>
+      {/* My Reports section */}
+      <div
+        className="p-5 mb-5"
+        style={{
+          background: '#fff',
+          border: '1px solid var(--paper-dim)',
+          borderRadius: '3px',
+        }}
+      >
+        <h2
+          className="mb-4 uppercase"
+          style={{
+            fontFamily: "'Big Shoulders Display', sans-serif",
+            fontWeight: 700,
+            fontSize: '1.125rem',
+            color: 'var(--ink)',
+            letterSpacing: '0.04em',
+          }}
+        >
+          My Reports
+        </h2>
         
         {loading ? (
           <div className="flex justify-center items-center py-8">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--hazard)' }} />
           </div>
         ) : reports.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">You haven't reported any issues yet.</p>
+            <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}>
+              You haven't reported any issues yet.
+            </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {reports.map((report) => (
-              <Link key={report.id} to={`/issue/${report.id}`} className="border border-gray-100 rounded-lg p-4 hover:border-blue-200 hover:shadow-sm transition-all flex flex-col sm:flex-row gap-4">
-                <div className="w-full sm:w-24 h-24 sm:h-auto bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+              <Link
+                key={report.id}
+                to={`/issue/${report.id}`}
+                className="flex flex-col sm:flex-row gap-3 no-underline transition-all"
+                style={{
+                  border: '1px solid var(--paper-dim)',
+                  borderRadius: '3px',
+                  overflow: 'hidden',
+                  background: '#fff',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--hazard)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(22,40,61,0.08)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--paper-dim)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                }}
+              >
+                {/* Thumbnail */}
+                <div
+                  className="w-full sm:w-24 h-24 bg-paper overflow-hidden flex-shrink-0"
+                  style={{ background: 'var(--paper)' }}
+                >
                   {report.mediaType === 'video' ? (
                      <video src={report.mediaURL} className="w-full h-full object-cover" />
                   ) : (
                      <img src={report.mediaURL} className="w-full h-full object-cover" />
                   )}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-bold text-gray-900">{report.category}</h3>
-                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${
-                       report.status === 'reported' ? 'bg-red-100 text-red-700' :
-                       report.status === 'in_progress' ? 'bg-orange-100 text-orange-700' :
-                       report.status === 'resolved' ? 'bg-green-100 text-green-700' :
-                       'bg-gray-100 text-gray-700'
-                     }`}>
+
+                {/* Info */}
+                <div className="flex-1 p-3">
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <h3
+                      className="font-semibold"
+                      style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}
+                    >
+                      {report.category}
+                    </h3>
+                    <span className={statusChipClass(report.status)}>
                        {report.status.replace('_', ' ')}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">{report.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{report.createdAt?.toDate ? report.createdAt.toDate().toLocaleDateString() : 'Just now'}</span>
-                    </div>
+                  <p
+                    className="text-sm line-clamp-2 mb-2"
+                    style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}
+                  >
+                    {report.description}
+                  </p>
+                  <div
+                    className="flex items-center gap-1"
+                    style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6875rem', color: 'var(--text-secondary)' }}
+                  >
+                    <Clock className="w-3 h-3" />
+                    <span>
+                      {report.createdAt?.toDate ? report.createdAt.toDate().toLocaleDateString() : 'Just now'}
+                    </span>
                   </div>
                 </div>
               </Link>
@@ -112,10 +219,22 @@ export default function Profile() {
         )}
       </div>
 
+      {/* Sign out */}
       <div className="flex justify-center">
         <button 
           onClick={handleSignOut}
-          className="text-red-500 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+          className="btn-secondary"
+          style={{ borderColor: 'rgba(214,72,61,0.35)', color: 'var(--signal)' }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.borderColor = 'var(--signal)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--signal)';
+            (e.currentTarget as HTMLElement).style.background = 'rgba(214,72,61,0.05)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(214,72,61,0.35)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--signal)';
+            (e.currentTarget as HTMLElement).style.background = 'transparent';
+          }}
         >
           Sign Out
         </button>

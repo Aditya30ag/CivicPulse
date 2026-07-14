@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link, NavLink } from 'react-router-dom';
+import { useNavigate, Link, NavLink, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc, where } from 'firebase/firestore';
-import { Loader2, LayoutList, Map as MapIcon, Activity, MapPin, AlertTriangle, User, Eye, Search, CheckCircle, ArrowRight, Lightbulb, ArrowUpRight, ArrowDownRight, Minus, GitMerge, Clock, ClipboardList } from 'lucide-react';
+import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc, where, startAfter } from 'firebase/firestore';
+import { Loader2, LayoutList, Map as MapIcon, Activity, MapPin, AlertTriangle, User, Eye, Search, CheckCircle, ArrowRight, Lightbulb, ArrowUpRight, ArrowDownRight, Minus, GitMerge, Clock, ClipboardList, Trophy, PlusCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -19,18 +19,17 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+/* ── Severity-based marker icons ──────────────────────────────────────── */
 const iconHTML = (color: string) => `
   <div style="
     background-color: ${color};
-    width: 24px;
-    height: 24px;
+    width: 24px; height: 24px;
     display: block;
-    left: -12px;
-    top: -12px;
+    left: -12px; top: -12px;
     position: relative;
     border-radius: 50%;
-    border: 3px solid white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    border: 2.5px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   "></div>
 `;
 
@@ -38,15 +37,21 @@ const createMarkerIcon = (color: string) => L.divIcon({
   html: iconHTML(color),
   className: 'custom-leaflet-icon',
   iconSize: [24, 24],
-  iconAnchor: [12, 12], 
-  popupAnchor: [0, -12]
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12],
 });
 
+const sevIcon = (sev: number) => {
+  if (sev >= 7) return createMarkerIcon('var(--signal)');
+  if (sev >= 4) return createMarkerIcon('var(--hazard)');
+  return createMarkerIcon('var(--verified)');
+};
+
 const icons = {
-  reported: createMarkerIcon('var(--accent-danger)'),     // danger
-  in_progress: createMarkerIcon('var(--accent-warning)'),  // warning
-  resolved: createMarkerIcon('var(--accent-success)'),     // success
-  community_verified: createMarkerIcon('var(--accent-lavender)') // lavender
+  reported: createMarkerIcon('var(--signal)'),
+  in_progress: createMarkerIcon('var(--hazard)'),
+  resolved: createMarkerIcon('var(--verified)'),
+  community_verified: createMarkerIcon('var(--verified)'),
 };
 
 function HeatmapLayer({ data, visible }: { data: any[], visible: boolean }) {
@@ -109,19 +114,134 @@ function AutoFitBounds({ data }: { data: any[] }) {
   return null;
 }
 
+/* ── Admin stat card ──────────────────────────────────────────────────── */
+function AdminStatCard({ icon, label, value, accentColor }: {
+  icon: React.ReactNode; label: string; value: number | string; accentColor: string;
+}) {
+  return (
+    <div
+      className="flex flex-col p-4 sm:p-5"
+      style={{
+        background: '#fff',
+        border: `1px solid var(--paper-dim)`,
+        borderLeft: `4px solid ${accentColor}`,
+        borderRadius: '3px',
+        boxShadow: '0 1px 3px rgba(22,40,61,0.06)',
+      }}
+    >
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-8 h-8 flex items-center justify-center shrink-0"
+          style={{ background: `${accentColor}18`, borderRadius: '3px' }}>
+          <span style={{ color: accentColor }}>{icon}</span>
+        </div>
+        <span
+          className="text-xs uppercase tracking-widest"
+          style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: 'var(--text-secondary)' }}
+        >
+          {label}
+        </span>
+      </div>
+      <span
+        style={{
+          fontFamily: "'Big Shoulders Display', sans-serif",
+          fontWeight: 900,
+          fontSize: '2.25rem',
+          lineHeight: 1,
+          color: 'var(--ink)',
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* ── Status chip helper ───────────────────────────────────────────────── */
+function statusChipClass(status: string) {
+  switch (status) {
+    case 'reported':           return 'status-chip status-chip--open';
+    case 'in_progress':        return 'status-chip status-chip--progress';
+    case 'community_verified': return 'status-chip status-chip--verified';
+    case 'resolved':           return 'status-chip status-chip--resolved';
+    default:                   return 'status-chip';
+  }
+}
+
 export default function Admin() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'queue' | 'map' | 'activity' | 'insights'>('queue');
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const { subpage } = useParams<{ subpage: string }>();
+  const location = useLocation();
+
+  // Active tab derived from subpage parameter
+  const activeTab = (subpage || 'queue') as 'queue' | 'reports' | 'map' | 'activity' | 'insights';
   
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [reports, setReports] = useState<any[]>([]);
   const [wards, setWards] = useState<any[]>([]);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
+  // Paginated Reports state (moved from AdminReports.tsx)
+  const [reportsList, setReportsList] = useState<any[]>([]);
+  const [lastDoc, setLastDoc] = useState<any | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingReports, setLoadingReports] = useState(false);
+
+  const PAGE_SIZE = 10;
+
+  const loadReportsList = async (loadMore = false) => {
+    if (!db) return;
+    try {
+      setLoadingReports(true);
+      let reportsQuery;
+      if (loadMore && lastDoc) {
+        reportsQuery = query(
+          collection(db, "reports"),
+          orderBy("createdAt", "desc"),
+          startAfter(lastDoc),
+          limit(PAGE_SIZE)
+        );
+      } else {
+        reportsQuery = query(
+          collection(db, "reports"),
+          orderBy("createdAt", "desc"),
+          limit(PAGE_SIZE)
+        );
+      }
+
+      const snapshot = await getDocs(reportsQuery);
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      if (loadMore) {
+        setReportsList(prev => [...prev, ...data]);
+      } else {
+        setReportsList(data);
+      }
+
+      if (snapshot.docs.length > 0) {
+        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      }
+      setHasMore(snapshot.docs.length === PAGE_SIZE);
+    } catch (error) {
+      console.error("Failed to load reports:", error);
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
   useEffect(() => {
     setIsAdmin(true);
   }, []);
+
+  // Fetch paginated reports list when activeTab is reports and lists are empty
+  useEffect(() => {
+    if (activeTab === 'reports' && reportsList.length === 0) {
+      loadReportsList();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (!isAdmin || !db) return;
@@ -208,7 +328,7 @@ export default function Admin() {
   if (isAdmin === null) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--hazard)' }} />
       </div>
     );
   }
@@ -234,6 +354,15 @@ export default function Admin() {
         updateData.resolvedAt = new Date().toISOString();
       }
       await updateDoc(doc(db, 'reports', reportId), updateData);
+      
+      // Update local paginated reportsList if it contains the report
+      setReportsList((prev) =>
+        prev.map((report) =>
+          report.id === reportId
+            ? { ...report, status: newStatus }
+            : report
+        )
+      );
     } catch(e) {
       console.error(e);
     }
@@ -268,8 +397,8 @@ export default function Admin() {
 
   const riskScore = Math.min(100, Math.round((highSeverityCount / Math.max(1, totalOpenReports)) * 100 * 1.5 + 20));
   const dynamicRiskData = [
-    { name: 'Risk', value: riskScore || 1, fill: riskScore > 60 ? '#d97706' : '#0e9f7d' },
-    { name: 'Safe', value: 100 - (riskScore || 0), fill: '#e5e7eb' } 
+    { name: 'Risk', value: riskScore || 1, fill: riskScore > 60 ? 'var(--signal)' : 'var(--verified)' },
+    { name: 'Safe', value: 100 - (riskScore || 0), fill: 'var(--paper-dim)' } 
   ];
 
   const dynamicTopItems = unresolvedReports.slice(0, 4).map((r: any) => ({
@@ -285,7 +414,7 @@ export default function Admin() {
     acc[cat] = (acc[cat] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const catColors = ['#0e9f7d', '#9a4cf5', '#d97706', '#dc2626', '#3b82f6'];
+  const catColors = ['var(--verified)', 'var(--hazard)', 'var(--signal)', 'var(--ink)', 'var(--grid)'];
   const dynamicCategories = Object.entries(categoryCounts)
     .sort((a, b) => (b[1] as number) - (a[1] as number))
     .slice(0, 4)
@@ -320,419 +449,821 @@ export default function Admin() {
         resolved: counts.resolved
       };
     });
-// Provide fallback empty data if no reports
   if (dynamicDataOverTime.length === 0) {
     dynamicDataOverTime = [{ name: months[new Date().getMonth()], new: 0, resolved: 0 }];
   }
 
-  const getTabButtonClass = (
-    tab: 'queue' | 'map' | 'activity' | 'insights'
-  ) =>
-    `px-5 py-1.5 rounded-full font-bold text-sm cursor-pointer transition-all duration-200 ${
-      activeTab === tab
-        ? 'bg-dark text-white shadow-sm'
-        : 'text-muted hover:text-dark hover:bg-gray-100 hover:shadow-sm'
-    }`;
-
-  return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto h-[calc(100vh-64px)] flex flex-col">
-      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-dark bg-gradient-to-b from-white/15 to-transparent flex items-center justify-center shrink-0 shadow-sm">
-            <LayoutList className="w-5 h-5 text-white" strokeWidth={2.25} />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-dark tracking-tight">Priority queue</h1>
-            <p className="text-muted mt-0.5 font-medium text-sm">Civic Pulse Admin • Ward 7 Overview</p>
-          </div>
+    return (
+    <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden bg-paper">
+      
+      {/* ── LEFT SIDEBAR (Desktop) ── */}
+      <aside className="hidden lg:flex flex-col w-64 bg-ink border-r border-grid shrink-0 h-full justify-between">
+        <div className="flex flex-col">
+          {/* Navigation links */}
+          <nav className="p-4 flex flex-col gap-1.5">
+            {[
+              { id: 'queue', label: 'Priority Queue', icon: <ClipboardList className="w-4 h-4" /> },
+              { id: 'reports', label: 'Reports Log', icon: <LayoutList className="w-4 h-4" /> },
+              { id: 'map', label: 'Live Incident Map', icon: <MapIcon className="w-4 h-4" /> },
+              { id: 'activity', label: 'AI Agent Activity', icon: <Activity className="w-4 h-4" /> },
+              { id: 'insights', label: 'Predictive Insights', icon: <Lightbulb className="w-4 h-4" /> },
+            ].map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <Link
+                  key={item.id}
+                  to={`/admin/${item.id}`}
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded text-sm font-semibold transition-all no-underline"
+                  style={{
+                    background: isActive ? 'var(--hazard)' : 'transparent',
+                    color: isActive ? 'var(--ink)' : 'rgba(238,241,236,0.7)',
+                  }}
+                >
+                  <span style={{ color: isActive ? 'var(--ink)' : 'var(--hazard)' }}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-        <div className="flex bg-transparent border border-border-subtle p-1.5 rounded-full shadow-sm bg-white">
-          <button
-            onClick={() => setActiveTab('queue')}
-            className={getTabButtonClass('queue')}
-          >
-            Queue
-          </button>
 
-          <NavLink
-            to="/admin/reports"
-            className={({ isActive }) =>
-              `px-5 py-1.5 rounded-full font-bold text-sm transition-all duration-200 ${
-                isActive
-                  ? "bg-dark text-white shadow-sm"
-                  : "text-muted hover:text-dark hover:bg-gray-100 hover:shadow-sm"
-              }`
-            }
-          >
-            Reports
-          </NavLink>
-
-          <button
-            onClick={() => setActiveTab('map')}
-            className={getTabButtonClass('map')}
-          >
-            Live map
-          </button>
-
-          <button
-            onClick={() => setActiveTab('activity')}
-            className={getTabButtonClass('activity')}
-          >
-            Agent activity
-          </button>
-
-          <button
-            onClick={() => setActiveTab('insights')}
-            className={getTabButtonClass('insights')}
-          >
-            Predictive
-          </button>
+        {/* Sidebar Footer status banner */}
+        <div className="p-4 border-t border-grid bg-black/20 flex flex-col gap-1 text-[10px] font-mono text-white/40">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-verified animate-pulse" />
+            <span>SYS STATUS: NOMINAL</span>
+          </div>
+          <div>WARD 07 · DISPATCH ACTIVE</div>
         </div>
-      </div>
+      </aside>
 
-      <div className="bg-card rounded-2xl shadow-sm border border-border-subtle flex-1 overflow-hidden flex flex-col min-h-0">
-        {activeTab === 'insights' && (
-           <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-page">
-             <div className="max-w-4xl mx-auto">
-               <div className="mb-6">
-                 <h2 className="text-xl font-bold text-dark flex items-center gap-2">
-                   <Lightbulb className="w-6 h-6 text-warning" />
-                   AI Predictive Insights
-                 </h2>
-                 <p className="text-muted mt-1">Autonomous 14-day forecasts analyzing recent civic reports by ward.</p>
-               </div>
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {wards.map((ward, idx) => (
-                   <motion.div 
-                     key={ward.id}
-                     initial={{ opacity: 0, scale: 0.95 }}
-                     animate={{ opacity: 1, scale: 1 }}
-                     transition={{ delay: idx * 0.1 }}
-                     className="bg-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
-                   >
-                     <div className="flex justify-between items-start mb-4">
-                       <h3 className="font-bold text-lg text-dark">{ward.name}</h3>
-                       <span className="text-xs text-muted bg-page px-2 py-1 rounded">
-                         Last analyzed: {formatRelativeTime(ward.lastSweepAt)}
-                       </span>
-                     </div>
-                     
-                     {ward.forecast ? (
-                       <div className="bg-lavender/10 rounded-lg p-4 border border-lavender/20">
-                         <div className="flex items-center gap-3 mb-3">
-                           {ward.forecast.trend === 'increasing' && <div className="w-8 h-8 rounded-full bg-danger/20 text-danger flex items-center justify-center shrink-0"><ArrowUpRight className="w-5 h-5" /></div>}
-                           {ward.forecast.trend === 'decreasing' && <div className="w-8 h-8 rounded-full bg-success/20 text-success flex items-center justify-center shrink-0"><ArrowDownRight className="w-5 h-5" /></div>}
-                           {ward.forecast.trend === 'stable' && <div className="w-8 h-8 rounded-full bg-page border border-border-subtle text-muted flex items-center justify-center shrink-0"><Minus className="w-5 h-5" /></div>}
-                           
-                           <div>
-                             <span className="text-xs font-bold uppercase tracking-wider text-muted mb-0.5 block">Predicted Focus Area</span>
-                             <span className="font-semibold text-dark flex items-center gap-2">
-                               {ward.forecast.category}
-                               <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-sm ${ward.forecast.confidence === 'high' ? 'bg-success/20 text-success' : ward.forecast.confidence === 'medium' ? 'bg-warning/20 text-warning' : 'bg-danger/20 text-danger'}`}>
-                                 {ward.forecast.confidence} Confidence
-                               </span>
-                             </span>
-                           </div>
-                         </div>
-                         <p className="text-sm text-dark font-medium italic">"{ward.forecast.reasoning}"</p>
-                       </div>
-                     ) : (
-                       <div className="flex items-center justify-center py-6 text-muted gap-2 text-sm italic">
-                         <Loader2 className="w-4 h-4 animate-spin" />
-                         Analyzing recent reports...
-                       </div>
-                     )}
-                   </motion.div>
-                 ))}
-                 
-                 {wards.length === 0 && (
-                   <div className="col-span-full py-12 flex justify-center items-center">
-                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                   </div>
-                 )}
-               </div>
-             </div>
-           </div>
-        )}
+      {/* ── RIGHT MAIN PANEL ── */}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+        {/* Content container */}
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          
+          {/* ── REPORTS LOG VIEW ── */}
+          {activeTab === 'reports' && (
+            <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-paper">
+              <div className="max-w-4xl mx-auto w-full">
+                {loadingReports && reportsList.length === 0 ? (
+                  <div className="flex justify-center items-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--hazard)' }} />
+                  </div>
+                ) : reportsList.length === 0 ? (
+                  <div className="text-center py-12 text-sm" style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}>
+                    No reports found in log database.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reportsList.map((report) => {
+                      const sev = report.severityScore ?? 5;
+                      const sevColor = sev >= 7 ? 'var(--signal)' : sev >= 4 ? 'var(--hazard)' : 'var(--verified)';
+                      const sevLabel = sev >= 7 ? 'HIGH' : sev >= 4 ? 'MED' : 'LOW';
 
-        {activeTab === 'queue' && (
-           <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-page">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
-                 <div className="bg-card border border-border-subtle border-l-4 border-l-success rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                   <div className="flex items-center gap-2.5 mb-3">
-                     <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
-                       <ClipboardList className="w-5 h-5 text-success" strokeWidth={2.25} />
-                     </div>
-                     <span className="text-sm font-bold text-muted uppercase tracking-wider">Total open reports</span>
-                   </div>
-                   <div className="flex items-baseline gap-2">
-                     <span className="text-3xl font-bold text-dark">{totalOpenReports}</span>
-                   </div>
-                 </div>
-                 
-                 <div className="bg-card border border-border-subtle border-l-4 border-l-danger rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                   <div className="flex items-center gap-2.5 mb-3">
-                     <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
-                       <AlertTriangle className="w-5 h-5 text-danger" strokeWidth={2.25} />
-                     </div>
-                     <span className="text-sm font-bold text-muted uppercase tracking-wider">High severity</span>
-                   </div>
-                   <div className="flex items-baseline gap-2">
-                     <span className="text-3xl font-bold text-dark">{highSeverityCount}</span>
-                   </div>
-                 </div>
-
-                 <div className="bg-card border border-border-subtle border-l-4 border-l-lavender rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                   <div className="flex items-center gap-2.5 mb-3">
-                     <div className="w-9 h-9 rounded-lg bg-lavender/10 flex items-center justify-center shrink-0">
-                       <CheckCircle className="w-5 h-5 text-lavender" strokeWidth={2.25} />
-                     </div>
-                     <span className="text-sm font-bold text-muted uppercase tracking-wider">Resolved this week</span>
-                   </div>
-                   <div className="flex items-baseline gap-2">
-                     <span className="text-3xl font-bold text-dark">{resolvedThisWeek}</span>
-                   </div>
-                 </div>
-
-                 <div className="bg-card border border-border-subtle border-l-4 border-l-warning rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-                   <div className="flex items-center gap-2.5 mb-3">
-                     <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-                       <Clock className="w-5 h-5 text-warning" strokeWidth={2.25} />
-                     </div>
-                     <span className="text-sm font-bold text-muted uppercase tracking-wider">Avg resolution time</span>
-                   </div>
-                   <div className="flex items-baseline gap-2">
-                     <span className="text-3xl font-bold text-dark">{avgResolutionTime}</span>
-                   </div>
-                 </div>
-              </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-              
-              {/* Left Column */}
-              <div className="md:col-span-3 flex flex-col gap-6">
-                
-                <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex-1">
-                   <h3 className="text-lg font-bold text-dark mb-4">Reports over time</h3>
-                   <div className="flex gap-4 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-success"></div>
-                        <div className="w-2 h-2 rounded-full bg-mint"></div>
-                        <span className="text-xs font-semibold text-muted">New reports</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-lavender"></div>
-                        <span className="text-xs font-semibold text-muted">Resolved</span>
-                      </div>
-                    </div>
-
-                    <div className="h-48 mt-2 -ml-6 -mr-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={dynamicDataOverTime} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }} dy={10} />
-                          <YAxis axisLine={false} tickLine={false} tick={false} width={0} />
-                          <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--border-subtle)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                          <Line type="monotone" dataKey="new" stroke="#0e9f7d" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
-                          <Line type="monotone" dataKey="resolved" stroke="#9a4cf5" strokeWidth={3} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex-1">
-                   <h3 className="text-lg font-bold text-dark mb-6">Distribution by category</h3>
-                   <div className="flex flex-col gap-5 mt-2 overflow-y-auto max-h-48 pr-2">
-                      {dynamicCategories.map(cat => (
-                        <div key={cat.name} className="flex items-center gap-4">
-                          <div className="w-32 text-sm font-bold text-dark">{cat.name}</div>
-                          <div className="flex-1 h-2.5 bg-page rounded-full overflow-hidden flex items-center">
-                            <div className="h-full rounded-full" style={{ width: `${cat.value}%`, backgroundColor: cat.color }}></div>
+                      return (
+                        <div key={report.id} className="asset-tag">
+                          <div className="asset-tag__stub">
+                            <span className={`asset-tag__score ${sev >= 7 ? 'asset-tag__score--high' : sev >= 4 ? 'asset-tag__score--medium' : 'asset-tag__score--low'}`}>
+                              {sev}
+                            </span>
+                            <span style={{
+                              fontFamily: "'IBM Plex Mono', monospace",
+                              fontSize: '0.5rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              color: sevColor,
+                              fontWeight: 500,
+                            }}>
+                              {sevLabel}
+                            </span>
                           </div>
-                          <div className="w-12 text-right text-sm font-semibold text-muted">{cat.value}%</div>
+                          <div className="asset-tag__body">
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex-1 min-w-0">
+                                <h2 className="text-base font-semibold" style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}>
+                                  {report.title || report.category}
+                                </h2>
+                                <p className="text-sm mt-0.5" style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                                  {report.category}
+                                </p>
+                                <p className="mt-2 text-sm line-clamp-2" style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}>
+                                  {report.description}
+                                </p>
+                                <p className="mt-3 text-xs" style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}>
+                                  {report.createdAt?.toDate ? report.createdAt.toDate().toLocaleString() : ""}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end gap-3 shrink-0">
+                                <select
+                                  value={report.status}
+                                  onChange={(e) => handleUpdateStatus(report.id, e.target.value)}
+                                  className={statusChipClass(report.status)}
+                                  style={{ cursor: 'pointer', background: 'inherit' }}
+                                >
+                                  <option value="reported">Reported</option>
+                                  <option value="community_verified">Verified</option>
+                                  <option value="in_progress">In Progress</option>
+                                  <option value="resolved">Resolved</option>
+                                </select>
+                                <Link
+                                  to={`/issue/${report.id}`}
+                                  className="text-sm font-semibold no-underline transition-colors"
+                                  style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}
+                                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--hazard)')}
+                                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink)')}
+                                >
+                                  View Details →
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                   </div>
-                </div>
-
-              </div>
-
-              {/* Right Column */}
-              <div className="md:col-span-2 flex flex-col gap-6">
-
-                <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex flex-col">
-                   <h3 className="text-lg font-bold text-dark mb-2">Ward 7 risk score</h3>
-                   <div className="relative w-full h-36 flex flex-col items-center mt-2">
-                      <ResponsiveContainer width={240} height={140}>
-                        <PieChart>
-                          <Pie
-                            data={dynamicRiskData}
-                            cx="50%"
-                            cy="100%"
-                            startAngle={180}
-                            endAngle={0}
-                            innerRadius={80}
-                            outerRadius={105}
-                            stroke="none"
-                            cornerRadius={5}
-                            paddingAngle={2}
-                            dataKey="value"
-                          >
-                            {dynamicRiskData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute top-[68px] flex flex-col items-center">
-                         <div className="flex items-baseline gap-1">
-                           <span className="text-5xl leading-none font-bold text-dark">{riskScore}</span>
-                           <span className="text-lg leading-none font-bold text-[#9ca3af]">/100</span>
-                         </div>
-                         <span className="text-xs mt-1 font-bold text-muted">{riskScore > 60 ? 'Elevated risk' : 'Normal'}</span>
-                      </div>
-                   </div>
-
-                   <div className="mt-8 bg-page border border-border-subtle rounded-lg p-5">
-                     <p className="text-sm text-center font-medium text-muted">
-                       Waterlogging complaints predicted to rise 40% over next 14 days based on seasonal pattern.
-                     </p>
-                   </div>
-                </div>
-
-                <div className="bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex-1 flex flex-col min-h-0">
-                   <h3 className="text-lg font-bold text-dark mb-4">Top priority items</h3>
-                   <div className="flex flex-col flex-1 divide-y divide-border-subtle overflow-y-auto max-h-60 pr-2">
-                     {dynamicTopItems.map((item, i) => (
-                       <Link to={`/issue/${item.id}`} key={i} className="flex items-center gap-3 py-4 first:pt-2 last:pb-2 hover:bg-page/50 transition-colors cursor-pointer -mx-2 px-2 rounded-lg">
-                         <div className={`px-2 py-0.5 rounded font-bold text-[10px] whitespace-nowrap uppercase ${item.sev >= 8 ? 'bg-danger/10 text-danger' : item.sev >= 6 ? 'bg-warning/20 text-[#b45309]' : 'bg-warning/10 text-warning'}`}>
-                            SEV {item.sev}
-                         </div>
-                         <div className="flex-1 min-w-0 flex items-center justify-between">
-                           <p className="font-bold text-dark text-sm truncate mr-2">{item.title}</p>
-                           <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                             <select 
-                               className={`px-3 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-mint focus:border-transparent ${
-                                 item.status === 'reported' ? 'bg-danger/10 text-danger' :
-                                 item.status === 'in_progress' ? 'bg-warning/10 text-warning' :
-                                 item.status === 'resolved' ? 'bg-success/10 text-success' :
-                                 'bg-page text-muted'
-                               }`}
-                               value={item.status}
-                               onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                             >
-                               <option value="reported" className="text-dark bg-page">Reported</option>
-                               <option value="community_verified" className="text-dark bg-page">Verified</option>
-                               <option value="in_progress" className="text-dark bg-page">In Progress</option>
-                               <option value="resolved" className="text-dark bg-page">Resolved</option>
-                             </select>
-                           </div>
-                         </div>
-                         <div className="text-xs font-medium text-muted shrink-0 w-[50px] text-right">
-                           {item.time}
-                         </div>
-                       </Link>
-                     ))}
-                   </div>
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {hasMore && reportsList.length > 0 && (
+                  <div className="flex justify-center mt-8">
+                    <button onClick={() => loadReportsList(true)} disabled={loadingReports} className="btn-primary">
+                      {loadingReports ? <Loader2 className="w-4 h-4 animate-spin" /> : "Load More"}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-           </div>
-        )}
+          )}
 
-        {activeTab === 'map' && (
-           <div className="flex-1 relative">
-             <div className="absolute top-4 right-4 z-[400]">
-               <button 
-                 onClick={() => setShowHeatmap(!showHeatmap)}
-                 className="bg-white shadow-md border border-gray-200 px-4 py-2 rounded-lg font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-               >
-                 {showHeatmap ? 'Show Markers' : 'Heatmap View'}
-               </button>
+          {/* ── PREDICTIVE INSIGHTS VIEW ── */}
+          {activeTab === 'insights' && (
+             <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-paper">
+               <div className="max-w-4xl mx-auto">
+                 <div className="mb-6">
+                   <h2
+                    className="flex items-center gap-2"
+                    style={{
+                      fontFamily: "'Big Shoulders Display', sans-serif",
+                      fontWeight: 700,
+                      fontSize: '1.5rem',
+                      color: 'var(--ink)',
+                    }}
+                   >
+                     <Lightbulb className="w-5 h-5" style={{ color: 'var(--hazard)' }} />
+                     AI PREDICTIVE INSIGHTS
+                   </h2>
+                   <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)', marginTop: '4px' }}>
+                     Autonomous 14-day forecasts analyzing recent civic reports by ward.
+                   </p>
+                 </div>
+                 
+                 <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                      gap: '18px',
+                      alignItems: 'stretch',
+                    }}
+                  >
+                    {wards.map((ward, idx) => (
+                      <motion.div 
+                        key={ward.id}
+                        initial={{ opacity: 0, scale: 0.97 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.08 }}
+                        style={{
+                          background: '#fff',
+                          border: '1px solid var(--paper-dim)',
+                          borderRadius: '3px',
+                          padding: '20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                        }}
+                      >
+                        {/* Card header: ward name + sweep timestamp */}
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3
+                             style={{
+                               fontFamily: "'Big Shoulders Display', sans-serif",
+                               fontWeight: 700,
+                               fontSize: '1.125rem',
+                               color: 'var(--ink)',
+                               textTransform: 'uppercase',
+                             }}
+                            >
+                             {ward.name}
+                            </h3>
+                            <span
+                             style={{
+                               fontFamily: "'IBM Plex Mono', monospace",
+                               fontSize: '0.625rem',
+                               color: 'var(--text-secondary)',
+                               textTransform: 'uppercase',
+                               letterSpacing: '0.05em',
+                             }}
+                            >
+                             WRD-{ward.id.substring(0, 6).toUpperCase()}
+                            </span>
+                          </div>
+                          <span
+                           style={{
+                             fontFamily: "'IBM Plex Mono', monospace",
+                             fontSize: '0.625rem',
+                             color: 'var(--text-secondary)',
+                             background: 'var(--paper)',
+                             border: '1px solid var(--paper-dim)',
+                             padding: '2px 8px',
+                             borderRadius: '2px',
+                           }}
+                          >
+                            {formatRelativeTime(ward.lastSweepAt)}
+                          </span>
+                        </div>
+                        
+                        {/* Forecast content — flex-1 so it fills card height */}
+                        {ward.forecast ? (
+                         <div
+                           style={{
+                             flex: 1,
+                             display: 'flex',
+                             flexDirection: 'column',
+                             background: 'var(--paper)',
+                             border: '1px solid var(--paper-dim)',
+                             borderRadius: '3px',
+                             padding: '14px',
+                           }}
+                         >
+                           <div className="flex items-center gap-3 mb-3">
+                             {ward.forecast.trend === 'increasing' && (
+                               <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                                style={{ background: 'rgba(214,72,61,0.12)', color: 'var(--signal)' }}
+                               >
+                                 <ArrowUpRight className="w-4 h-4" />
+                               </div>
+                             )}
+                             {ward.forecast.trend === 'decreasing' && (
+                               <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                                style={{ background: 'rgba(76,143,104,0.12)', color: 'var(--verified)' }}
+                               >
+                                 <ArrowDownRight className="w-4 h-4" />
+                               </div>
+                             )}
+                             {ward.forecast.trend === 'stable' && (
+                               <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                                style={{ background: 'var(--paper-dim)', color: 'var(--text-secondary)' }}
+                               >
+                                 <Minus className="w-4 h-4" />
+                               </div>
+                             )}
+                             
+                             <div>
+                               <span
+                                className="block"
+                                style={{
+                                  fontFamily: "'IBM Plex Mono', monospace",
+                                  fontSize: '0.625rem',
+                                  fontWeight: 500,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.07em',
+                                  color: 'var(--text-secondary)',
+                                  marginBottom: '3px',
+                                }}
+                               >
+                                 Predicted Focus Area
+                               </span>
+                               <span
+                                className="flex items-center gap-2"
+                                style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 600, color: 'var(--ink)' }}
+                               >
+                                 {ward.forecast.category}
+                                 <span
+                                  style={{
+                                    fontFamily: "'IBM Plex Mono', monospace",
+                                    fontSize: '0.5625rem',
+                                    textTransform: 'uppercase',
+                                    fontWeight: 500,
+                                    letterSpacing: '0.07em',
+                                    padding: '1px 6px',
+                                    borderRadius: '2px',
+                                    ...(ward.forecast.confidence === 'high'
+                                      ? { background: 'rgba(76,143,104,0.12)', color: '#2d6645', border: '1px solid rgba(76,143,104,0.3)' }
+                                      : ward.forecast.confidence === 'medium'
+                                      ? { background: 'rgba(242,183,5,0.12)', color: '#8a6500', border: '1px solid rgba(242,183,5,0.3)' }
+                                      : { background: 'rgba(214,72,61,0.10)', color: '#8a1f1a', border: '1px solid rgba(214,72,61,0.25)' }),
+                                  }}
+                                 >
+                                   {ward.forecast.confidence} conf.
+                                 </span>
+                               </span>
+                             </div>
+                           </div>
+                           <p
+                            className="text-sm italic"
+                            style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}
+                           >
+                             "{ward.forecast.reasoning}"
+                           </p>
+                         </div>
+                        ) : (
+                          /* Loading state — flex-1 so it matches forecast card height in siblings */
+                          <div
+                           style={{
+                             flex: 1,
+                             display: 'flex',
+                             alignItems: 'center',
+                             justifyContent: 'center',
+                             gap: '8px',
+                             padding: '24px 0',
+                             fontSize: '0.875rem',
+                             fontStyle: 'italic',
+                             fontFamily: "'IBM Plex Sans', sans-serif",
+                             color: 'var(--text-secondary)',
+                           }}
+                          >
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Analyzing recent reports…
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                    
+                    {wards.length === 0 && (
+                      <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px 0' }}>
+                        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--hazard)' }} />
+                      </div>
+                    )}
+                 </div>
+               </div>
              </div>
-             <MapContainer center={[37.7749, -122.4194]} zoom={13} className="absolute inset-0 w-full h-full z-0">
-               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-               <AutoFitBounds data={unresolvedReports} />
-               <HeatmapLayer data={unresolvedReports} visible={showHeatmap} />
-               {!showHeatmap && unresolvedReports.map(r => 
-                  r.geoPoint && r.geoPoint.lat && r.geoPoint.lng && (
-                    <Marker 
-                      key={r.id} 
-                      position={[r.geoPoint.lat, r.geoPoint.lng]}
-                      icon={icons[r.status as keyof typeof icons] || icons.reported}
-                    >
-                      <Popup>
-                        <strong className="block">{r.title}</strong>
-                        <span className="text-xs text-gray-500 block mb-1">Severity: {r.severityScore}/10</span>
-                        <Link to={`/issue/${r.id}`} target="_blank" className="text-primary text-xs font-bold hover:underline">View</Link>
-                      </Popup>
-                    </Marker>
-                  )
-               )}
-             </MapContainer>
-           </div>
-        )}
+          )}
 
-        {activeTab === 'activity' && (
-           <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-page">
-             <div className="max-w-2xl mx-auto space-y-6 relative pl-3">
-                <div className="absolute left-[31px] top-6 bottom-4 w-0.5 bg-border-subtle"></div>
-                {allTraces.map((trace, index) => {
-                  let Icon = CheckCircle;
-                  let iconColor = "text-mint";
-                  let iconBg = "bg-mint/20 border-mint";
+          {/* ── PRIORITY QUEUE VIEW ── */}
+          {activeTab === 'queue' && (
+             <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-paper">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 mb-6">
+                   <AdminStatCard icon={<ClipboardList className="w-4 h-4" strokeWidth={2.25} />} label="Total Open"       value={totalOpenReports}   accentColor="var(--verified)" />
+                   <AdminStatCard icon={<AlertTriangle className="w-4 h-4" strokeWidth={2.25} />} label="High Severity"   value={highSeverityCount}  accentColor="var(--signal)"   />
+                   <AdminStatCard icon={<CheckCircle className="w-4 h-4" strokeWidth={2.25} />}   label="Resolved / Week" value={resolvedThisWeek}   accentColor="var(--hazard)"   />
+                   <AdminStatCard icon={<Clock className="w-4 h-4" strokeWidth={2.25} />}         label="Avg Resolution"  value={avgResolutionTime}  accentColor="var(--grid)"     />
+                </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+                {/* Left Column */}
+                <div className="md:col-span-3 flex flex-col gap-5">
                   
-                  if (index % 2 === 1) {
-                     iconColor = "text-lavender";
-                     iconBg = "bg-lavender/20 border-lavender";
-                  }
-
-                  switch (trace.agent.toLowerCase()) {
-                     case 'perception': Icon = Eye; break;
-                     case 'deduplication': Icon = Search; break;
-                     case 'severity': Icon = AlertTriangle; break;
-                     case 'verification': Icon = CheckCircle; break;
-                     case 'routing': Icon = ArrowRight; break;
-                     case 'orchestrator': Icon = GitMerge; break;
-                  }
-
-                  return (
-                    <motion.div 
-                      key={`${trace.reportId}-${index}`} 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, duration: 0.3 }}
-                      className="relative z-10 flex gap-5"
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 border-card shadow-sm flex-shrink-0 ${iconBg}`}>
-                         <Icon className={`w-5 h-5 ${iconColor}`} />
+                  {/* Line chart */}
+                  <div
+                   className="p-6"
+                   style={{ background: '#fff', border: '1px solid var(--paper-dim)', borderRadius: '3px' }}
+                  >
+                     <h3
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontWeight: 500,
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.07em',
+                        color: 'var(--text-secondary)',
+                        marginBottom: '16px',
+                      }}
+                     >
+                      Reports over time
+                     </h3>
+                     <div className="flex gap-4 mb-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--verified)' }} />
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>New</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--hazard)' }} />
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>Resolved</span>
+                        </div>
                       </div>
-                      <div className="flex-1 bg-card border border-border-subtle shadow-sm rounded-2xl p-4 mt-0.5 hover:shadow-md transition-shadow">
-                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-2 gap-1 sm:gap-4">
-                           <span className="font-bold text-dark text-sm flex items-center gap-2">
-                             {trace.agent} Agent
-                             <span className="bg-page text-muted text-xs px-2 py-0.5 rounded font-medium border border-border-subtle">Global</span>
+                     <div className="h-48 -ml-6 -mr-4">
+                       <ResponsiveContainer width="100%" height="100%">
+                         <LineChart data={dynamicDataOverTime} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--paper-dim)" />
+                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: "'IBM Plex Mono', monospace" }} dy={10} />
+                           <YAxis axisLine={false} tickLine={false} tick={false} width={0} />
+                           <Tooltip contentStyle={{ borderRadius: '3px', border: '1px solid var(--paper-dim)', fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px' }} />
+                           <Line type="monotone" dataKey="new" stroke="var(--verified)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                           <Line type="monotone" dataKey="resolved" stroke="var(--hazard)" strokeWidth={2.5} dot={false} />
+                         </LineChart>
+                       </ResponsiveContainer>
+                     </div>
+                  </div>
+
+                  {/* Category bars */}
+                  <div
+                   className="p-6"
+                   style={{ background: '#fff', border: '1px solid var(--paper-dim)', borderRadius: '3px' }}
+                  >
+                     <h3
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontWeight: 500,
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.07em',
+                        color: 'var(--text-secondary)',
+                        marginBottom: '20px',
+                      }}
+                     >
+                      Distribution by category
+                     </h3>
+                     <div className="flex flex-col gap-4 overflow-y-auto max-h-48">
+                        {dynamicCategories.map(cat => (
+                          <div key={cat.name} className="flex items-center gap-4">
+                            <div
+                             className="w-28 text-sm font-semibold truncate"
+                             style={{ color: 'var(--ink)', fontFamily: "'IBM Plex Sans', sans-serif" }}
+                            >
+                              {cat.name}
+                            </div>
+                            <div
+                             className="flex-1 h-2 overflow-hidden"
+                             style={{ background: 'var(--paper)', borderRadius: '1px' }}
+                            >
+                              <div
+                               className="h-full"
+                               style={{ width: `${cat.value}%`, background: cat.color, borderRadius: '1px' }}
+                              />
+                            </div>
+                            <div
+                             className="w-10 text-right text-xs font-medium"
+                             style={{ color: 'var(--text-secondary)', fontFamily: "'IBM Plex Mono', monospace" }}
+                            >
+                              {cat.value}%
+                            </div>
+                          </div>
+                        ))}
+                     </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="md:col-span-2 flex flex-col gap-5">
+
+                  {/* Risk gauge */}
+                  <div
+                   className="p-6 flex flex-col"
+                   style={{ background: '#fff', border: '1px solid var(--paper-dim)', borderRadius: '3px' }}
+                  >
+                     <h3
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontWeight: 500,
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.07em',
+                        color: 'var(--text-secondary)',
+                        marginBottom: '8px',
+                      }}
+                     >
+                      Ward 7 Risk Score
+                     </h3>
+                     <div className="relative w-full h-36 flex flex-col items-center mt-2">
+                        <ResponsiveContainer width={240} height={140}>
+                          <PieChart>
+                            <Pie
+                              data={dynamicRiskData}
+                              cx="50%"
+                              cy="100%"
+                              startAngle={180}
+                              endAngle={0}
+                              innerRadius={80}
+                              outerRadius={105}
+                              stroke="none"
+                              cornerRadius={3}
+                              paddingAngle={2}
+                              dataKey="value"
+                            >
+                              {dynamicRiskData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute top-[68px] flex flex-col items-center">
+                           <div className="flex items-baseline gap-1">
+                             <span
+                              style={{
+                                fontFamily: "'Big Shoulders Display', sans-serif",
+                                fontWeight: 900,
+                                fontSize: '3rem',
+                                lineHeight: 1,
+                                color: 'var(--ink)',
+                              }}
+                             >
+                              {riskScore}
+                             </span>
+                             <span
+                              style={{
+                                fontFamily: "'IBM Plex Mono', monospace",
+                                fontSize: '1rem',
+                                color: 'var(--text-secondary)',
+                              }}
+                             >
+                              /100
+                             </span>
+                           </div>
+                           <span
+                            style={{
+                              fontFamily: "'IBM Plex Mono', monospace",
+                              fontSize: '0.6875rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              color: riskScore > 60 ? 'var(--signal)' : 'var(--verified)',
+                              marginTop: '4px',
+                            }}
+                           >
+                            {riskScore > 60 ? 'ELEVATED' : 'NORMAL'}
                            </span>
-                           <span className="text-xs text-muted font-medium whitespace-nowrap">{formatRelativeTime(trace.timestamp)}</span>
-                         </div>
-                         <p className="text-sm text-muted leading-relaxed font-medium mb-3">
-                           {trace.reasoning}
-                         </p>
-                         <div className="bg-page border border-border-subtle rounded-lg p-2 text-xs flex justify-between items-center">
-                           <span className="text-muted font-medium truncate max-w-[200px] md:max-w-xs">{trace.title || trace.category}</span>
-                           <Link to={`/issue/${trace.reportId}`} target="_blank" className="font-bold text-dark hover:text-mint transition-colors ml-2 shrink-0">View Report</Link>
-                         </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-                {allTraces.length === 0 && (
-                  <div className="text-center text-muted font-medium py-10">No recent AI activity.</div>
-                )}
+                        </div>
+                     </div>
+
+                     <div
+                      className="mt-8 p-4 text-center"
+                      style={{
+                        background: 'var(--paper)',
+                        border: '1px solid var(--paper-dim)',
+                        borderRadius: '3px',
+                      }}
+                     >
+                       <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                         Waterlogging complaints predicted to rise <strong style={{ color: 'var(--ink)' }}>40%</strong> over next 14 days based on seasonal pattern.
+                       </p>
+                     </div>
+                  </div>
+
+                  {/* Top priority */}
+                  <div
+                   className="p-6 flex flex-col flex-1"
+                   style={{ background: '#fff', border: '1px solid var(--paper-dim)', borderRadius: '3px' }}
+                  >
+                     <h3
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontWeight: 500,
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.07em',
+                        color: 'var(--text-secondary)',
+                        marginBottom: '16px',
+                      }}
+                     >
+                      Top Priority Items
+                     </h3>
+                     <div className="flex flex-col flex-1 overflow-y-auto max-h-60">
+                       {dynamicTopItems.map((item, i) => (
+                         <Link
+                          to={`/issue/${item.id}`}
+                          key={i}
+                          className="flex items-center gap-3 py-3 no-underline transition-colors -mx-2 px-2"
+                          style={{ borderBottom: '1px solid var(--paper-dim)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--paper)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                         >
+                           {/* Severity badge */}
+                           <span
+                            style={{
+                              fontFamily: "'IBM Plex Mono', monospace",
+                              fontSize: '0.625rem',
+                              fontWeight: 500,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.07em',
+                              padding: '2px 6px',
+                              borderRadius: '2px',
+                              whiteSpace: 'nowrap',
+                              ...(item.sev >= 8
+                                ? { background: 'rgba(214,72,61,0.10)', color: 'var(--signal)', border: '1px solid rgba(214,72,61,0.25)' }
+                                : item.sev >= 6
+                                ? { background: 'rgba(242,183,5,0.12)', color: '#8a6500', border: '1px solid rgba(242,183,5,0.3)' }
+                                : { background: 'rgba(76,143,104,0.10)', color: '#2d6645', border: '1px solid rgba(76,143,104,0.25)' }),
+                            }}
+                           >
+                            SEV {item.sev}
+                           </span>
+
+                           <div className="flex-1 min-w-0 flex items-center justify-between">
+                             <p
+                              className="text-sm font-semibold truncate mr-2"
+                              style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}
+                             >
+                              {item.title}
+                             </p>
+                             <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                               <select 
+                                 className={statusChipClass(item.status)}
+                                 value={item.status}
+                                 onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                                 style={{ cursor: 'pointer', background: 'inherit' }}
+                               >
+                                 <option value="reported">Reported</option>
+                                 <option value="community_verified">Verified</option>
+                                 <option value="in_progress">In Progress</option>
+                                 <option value="resolved">Resolved</option>
+                               </select>
+                             </div>
+                           </div>
+                           <div
+                            className="text-xs shrink-0 w-[50px] text-right"
+                            style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}
+                           >
+                            {item.time}
+                           </div>
+                         </Link>
+                       ))}
+                     </div>
+                  </div>
+                </div>
+              </div>
              </div>
-           </div>
-        )}
+          )}
+
+          {/* ── LIVE MAP VIEW ── */}
+          {activeTab === 'map' && (
+             <div className="flex-1 relative h-full">
+               <div className="absolute top-3 right-3 z-[400]">
+                 <button 
+                   onClick={() => setShowHeatmap(!showHeatmap)}
+                   className="btn-secondary font-semibold"
+                   style={{ fontSize: '0.8125rem', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                 >
+                   {showHeatmap ? 'Show Markers' : 'Heatmap View'}
+                 </button>
+               </div>
+               <MapContainer center={[37.7749, -122.4194]} zoom={13} className="absolute inset-0 w-full h-full z-0">
+                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                 <AutoFitBounds data={unresolvedReports} />
+                 <HeatmapLayer data={unresolvedReports} visible={showHeatmap} />
+                 {!showHeatmap && unresolvedReports.map(r => 
+                    r.geoPoint && r.geoPoint.lat && r.geoPoint.lng && (
+                      <Marker 
+                        key={r.id} 
+                        position={[r.geoPoint.lat, r.geoPoint.lng]}
+                        icon={sevIcon(r.severityScore || 5)}
+                      >
+                        <Popup>
+                          <strong
+                           className="block"
+                           style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}
+                          >
+                            {r.title}
+                          </strong>
+                          <span
+                           className="block mb-1"
+                           style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6875rem', color: 'var(--text-secondary)' }}
+                          >
+                            Severity: {r.severityScore}/10
+                          </span>
+                          <Link
+                           to={`/issue/${r.id}`}
+                           target="_blank"
+                           style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '0.75rem', fontWeight: 600, color: 'var(--hazard)' }}
+                          >
+                            View Details →
+                          </Link>
+                        </Popup>
+                      </Marker>
+                    )
+                 )}
+               </MapContainer>
+             </div>
+          )}
+
+          {/* ── AGENT ACTIVITY VIEW ── */}
+          {activeTab === 'activity' && (
+             <div className="overflow-y-auto p-4 md:p-8 flex-1 bg-paper">
+               <div className="max-w-2xl mx-auto space-y-4 relative pl-3">
+                  {/* Vertical timeline line */}
+                  <div
+                   className="absolute left-[31px] top-5 bottom-4 w-px"
+                   style={{ background: 'var(--paper-dim)' }}
+                  />
+                  {allTraces.map((trace, index) => {
+                    let Icon = CheckCircle;
+                    
+                    switch (trace.agent.toLowerCase()) {
+                       case 'perception':    Icon = Eye; break;
+                       case 'deduplication': Icon = Search; break;
+                       case 'severity':      Icon = AlertTriangle; break;
+                       case 'verification':  Icon = CheckCircle; break;
+                       case 'routing':       Icon = ArrowRight; break;
+                       case 'orchestrator':  Icon = GitMerge; break;
+                    }
+
+                    return (
+                      <motion.div 
+                        key={`${trace.reportId}-${index}`} 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.04, duration: 0.3 }}
+                        className="relative z-10 flex gap-4"
+                      >
+                        <div
+                         className="w-10 h-10 rounded-full flex items-center justify-center border-2 flex-shrink-0"
+                         style={{
+                           background: index % 2 === 0 ? 'rgba(242,183,5,0.12)' : 'rgba(76,143,104,0.12)',
+                           borderColor: index % 2 === 0 ? 'var(--hazard)' : 'var(--verified)',
+                         }}
+                        >
+                           <Icon
+                            className="w-4 h-4"
+                            style={{ color: index % 2 === 0 ? 'var(--hazard)' : 'var(--verified)' }}
+                           />
+                        </div>
+                        <div
+                         className="flex-1 p-4 mt-0.5"
+                         style={{
+                           background: '#fff',
+                           border: '1px solid var(--paper-dim)',
+                           borderRadius: '3px',
+                         }}
+                        >
+                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-2 gap-1 sm:gap-4">
+                             <span
+                              className="text-xs font-semibold flex items-center gap-2"
+                              style={{
+                                fontFamily: "'IBM Plex Mono', monospace",
+                                color: 'var(--hazard)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                              }}
+                             >
+                              {trace.agent} Agent
+                              <span
+                               style={{
+                                 background: 'var(--paper)',
+                                 border: '1px solid var(--paper-dim)',
+                                 padding: '1px 6px',
+                                 borderRadius: '2px',
+                                 color: 'var(--text-secondary)',
+                                 fontSize: '0.5625rem',
+                               }}
+                              >
+                               Global
+                              </span>
+                             </span>
+                             <span
+                              className="text-xs whitespace-nowrap"
+                              style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}
+                             >
+                              {formatRelativeTime(trace.timestamp)}
+                             </span>
+                           </div>
+                           <p
+                            className="text-sm leading-relaxed mb-3"
+                            style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}
+                           >
+                            {trace.reasoning}
+                           </p>
+                           <div
+                            className="p-2 flex justify-between items-center"
+                            style={{
+                              background: 'var(--paper)',
+                              border: '1px solid var(--paper-dim)',
+                              borderRadius: '2px',
+                            }}
+                           >
+                             <span
+                              className="text-xs truncate max-w-[200px] md:max-w-xs"
+                              style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}
+                             >
+                              {trace.title || trace.category}
+                             </span>
+                             <Link
+                              to={`/issue/${trace.reportId}`}
+                              target="_blank"
+                              className="ml-2 shrink-0 text-xs font-semibold no-underline transition-colors"
+                              style={{
+                                fontFamily: "'IBM Plex Sans', sans-serif",
+                                color: 'var(--hazard)',
+                                fontWeight: 600,
+                              }}
+                             >
+                              View Report →
+                             </Link>
+                           </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                  {allTraces.length === 0 && (
+                    <div
+                     className="text-center py-10"
+                     style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}
+                    >
+                     No recent AI activity.
+                    </div>
+                  )}
+               </div>
+             </div>
+          )}
+        </div>
       </div>
     </div>
   );

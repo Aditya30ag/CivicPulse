@@ -58,6 +58,17 @@ const formatRelativeTime = (timestamp: any) => {
   return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
 };
 
+/* ── Status chip helper ───────────────────────────────────────────────── */
+function statusChipClass(status: string) {
+  switch (status) {
+    case 'reported':           return 'status-chip status-chip--open';
+    case 'in_progress':        return 'status-chip status-chip--progress';
+    case 'community_verified': return 'status-chip status-chip--verified';
+    case 'resolved':           return 'status-chip status-chip--resolved';
+    default:                   return 'status-chip';
+  }
+}
+
 export default function IssueDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -212,8 +223,10 @@ export default function IssueDetail() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 gap-4">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        <p className="text-gray-500 font-medium">Loading issue details...</p>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--hazard)' }} />
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}>
+          Loading issue details…
+        </p>
       </div>
     );
   }
@@ -221,12 +234,25 @@ export default function IssueDetail() {
   if (error || !issue) {
     return (
       <div className="p-4 md:p-8 max-w-4xl mx-auto text-center">
-        <div className="bg-red-50 text-red-600 p-6 rounded-xl border border-red-100 flex flex-col items-center gap-4">
+        <div
+          className="p-6 flex flex-col items-center gap-4"
+          style={{
+            background: 'rgba(214,72,61,0.06)',
+            border: '1px solid rgba(214,72,61,0.25)',
+            borderRadius: '3px',
+            color: 'var(--signal)',
+          }}
+        >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <h2 className="text-xl font-bold">{error || "Issue not found"}</h2>
-          <Link to="/" className="text-red-700 underline font-medium hover:text-red-900">
+          <h2
+            className="text-xl"
+            style={{ fontFamily: "'Big Shoulders Display', sans-serif", fontWeight: 700 }}
+          >
+            {error || "Issue not found"}
+          </h2>
+          <Link to="/home" style={{ color: 'var(--signal)', fontWeight: 600 }}>
             Return to Map
           </Link>
         </div>
@@ -238,11 +264,30 @@ export default function IssueDetail() {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
-      <Link to="/" className="inline-flex items-center text-sm text-dark font-medium hover:underline mb-6">
-        &larr; Back to Map
+      {/* Back link */}
+      <Link
+        to="/home"
+        className="inline-flex items-center text-sm font-semibold mb-6 no-underline transition-colors"
+        style={{
+          fontFamily: "'IBM Plex Sans', sans-serif",
+          color: 'var(--ink)',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--hazard)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink)')}
+      >
+        ← Back to Map
       </Link>
       
-      <div className="bg-card rounded-2xl shadow-sm border border-border-subtle overflow-hidden">
+      {/* Main card */}
+      <div
+        className="overflow-hidden"
+        style={{
+          background: '#fff',
+          border: '1px solid var(--paper-dim)',
+          borderRadius: '3px',
+          boxShadow: '0 2px 8px rgba(22,40,61,0.07)',
+        }}
+      >
         {/* Media Block */}
         <div className="bg-black w-full flex items-center justify-center min-h-[16rem] max-h-[60vh] overflow-hidden">
           {issue.mediaType === 'video' ? (
@@ -253,115 +298,207 @@ export default function IssueDetail() {
         </div>
         
         <div className="p-5 sm:p-6 md:p-8">
+          {/* Status + ID row */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <select 
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full uppercase tracking-wider appearance-none cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-mint focus:border-transparent ${
-                    issue.status === 'reported' ? 'bg-danger/10 text-danger' :
-                    issue.status === 'in_progress' ? 'bg-warning/10 text-warning' :
-                    issue.status === 'resolved' ? 'bg-success/10 text-success' :
-                    'bg-page text-muted'
-                  }`}
-                  value={issue.status}
-                  onChange={(e) => handleUpdateStatus(e.target.value)}
-                >
-                  <option value="reported" className="text-dark bg-page">Reported</option>
-                  <option value="community_verified" className="text-dark bg-page">Verified</option>
-                  <option value="in_progress" className="text-dark bg-page">In Progress</option>
-                  <option value="resolved" className="text-dark bg-page">Resolved</option>
-             </select>
-             <span className="text-muted text-sm">Issue #{id?.substring(0, 8)}</span>
+              className={statusChipClass(issue.status)}
+              value={issue.status}
+              onChange={(e) => handleUpdateStatus(e.target.value)}
+              style={{ cursor: 'pointer', background: 'inherit' }}
+            >
+              <option value="reported">Reported</option>
+              <option value="community_verified">Verified</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+            </select>
+            <span
+              style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              #{id?.substring(0, 8)}
+            </span>
           </div>
           
-          <h1 className="text-2xl md:text-3xl font-bold text-dark mb-6">
+          {/* Title */}
+          <h1
+            className="uppercase mb-6"
+            style={{
+              fontFamily: "'Big Shoulders Display', sans-serif",
+              fontWeight: 900,
+              fontSize: 'clamp(1.5rem, 4vw, 2.25rem)',
+              lineHeight: 1.05,
+              color: 'var(--ink)',
+            }}
+          >
             {issue.title || `${issue.category} Issue`}
           </h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-page p-4 sm:p-6 rounded-2xl border border-border-subtle">
+          {/* Metadata grid */}
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 p-4 sm:p-6"
+            style={{
+              background: 'var(--paper)',
+              border: '1px solid var(--paper-dim)',
+              borderRadius: '3px',
+            }}
+          >
              <div className="flex items-start gap-3">
-               <User className="w-5 h-5 text-muted mt-0.5" />
+               <User className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
                <div>
-                  <p className="text-xs text-muted uppercase tracking-wider font-semibold mb-1">Reported By</p>
+                  <p
+                    className="text-xs uppercase tracking-widest mb-1"
+                    style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}
+                  >
+                    Reported By
+                  </p>
                   <div className="flex items-center gap-2">
                     {reporter?.photoURL ? (
                       <img src={reporter.photoURL} alt={reporter.name} className="w-6 h-6 rounded-full" />
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-border-subtle text-dark flex items-center justify-center text-xs font-bold">
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{ background: 'var(--paper-dim)', color: 'var(--ink)' }}
+                      >
                         {reporter?.name?.charAt(0) || '?'}
                       </div>
                     )}
-                    <span className="font-medium text-dark">{reporter?.name || 'Loading...'}</span>
+                    <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, color: 'var(--ink)' }}>
+                      {reporter?.name || 'Loading…'}
+                    </span>
                   </div>
                </div>
              </div>
 
              <div className="flex items-start gap-3">
-               <Clock className="w-5 h-5 text-muted mt-0.5" />
+               <Clock className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
                <div>
-                  <p className="text-xs text-muted uppercase tracking-wider font-semibold mb-1">Date Reported</p>
-                  <span className="font-medium text-dark">{dateString}</span>
+                  <p
+                    className="text-xs uppercase tracking-widest mb-1"
+                    style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}
+                  >
+                    Date Reported
+                  </p>
+                  <span
+                    style={{
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize: '0.8125rem',
+                      color: 'var(--ink)',
+                    }}
+                  >
+                    {dateString}
+                  </span>
                </div>
              </div>
 
              <div className="flex items-start gap-3 md:col-span-2">
-               <MapPin className="w-5 h-5 text-muted mt-0.5" />
+               <MapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
                <div>
-                  <p className="text-xs text-muted uppercase tracking-wider font-semibold mb-1">Location Coordinates</p>
-                  <span className="font-medium text-dark">
+                  <p
+                    className="text-xs uppercase tracking-widest mb-1"
+                    style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}
+                  >
+                    Location Coordinates
+                  </p>
+                  <span
+                    style={{
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize: '0.8125rem',
+                      color: 'var(--ink)',
+                    }}
+                  >
                     {issue.geoPoint.lat.toFixed(6)}, {issue.geoPoint.lng.toFixed(6)}
                   </span>
                </div>
              </div>
           </div>
           
-          <div className="mb-8 block">
-            <h3 className="text-sm font-bold text-dark mb-2 uppercase tracking-wider">Description</h3>
-            <p className="text-dark leading-relaxed whitespace-pre-wrap">
+          {/* Description */}
+          <div className="mb-8">
+            <h3
+              className="text-xs uppercase tracking-widest mb-3"
+              style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: 'var(--text-secondary)' }}
+            >
+              Description
+            </h3>
+            <p
+              className="leading-relaxed whitespace-pre-wrap"
+              style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}
+            >
               {issue.description}
             </p>
           </div>
 
+          {/* Severity block */}
           {(() => {
             const severityTrace = issue.agentTrace?.find(t => t.agent.toLowerCase() === 'severity');
             if (issue.severityScore === undefined || issue.severityScore === null) {
               return (
-                <div className="mb-8 p-6 rounded-2xl border border-border-subtle bg-page flex items-center justify-center gap-3">
-                   <Loader2 className="w-5 h-5 animate-spin text-muted" />
-                   <span className="text-sm font-medium text-muted italic">AI is assessing severity...</span>
+                <div
+                  className="mb-8 p-6 flex items-center justify-center gap-3"
+                  style={{
+                    border: '1px solid var(--paper-dim)',
+                    borderRadius: '3px',
+                    background: 'var(--paper)',
+                  }}
+                >
+                   <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-secondary)' }} />
+                   <span
+                    style={{
+                      fontFamily: "'IBM Plex Sans', sans-serif",
+                      fontSize: '0.875rem',
+                      fontStyle: 'italic',
+                      color: 'var(--text-secondary)',
+                    }}
+                   >
+                    AI is assessing severity…
+                   </span>
                 </div>
               );
             }
 
-            let strokeColor = "var(--accent-mint)";
-            let label = "Low";
-            if (issue.severityScore >= 8) {
-              strokeColor = "var(--accent-danger)";
-              label = "High / Urgent";
-            } else if (issue.severityScore >= 4) {
-              strokeColor = "var(--accent-warning)";
-              label = "Medium";
-            }
-            
-            const reasoning = severityTrace?.reasoning || `Assessed as severity level ${issue.severityScore}/10 based on civic impact.`;
-            const arcLength = 125.66;
-            const progress = (issue.severityScore / 10) * arcLength;
+            const sev = issue.severityScore;
+            const sevColor = sev >= 7 ? 'var(--signal)' : sev >= 4 ? 'var(--hazard)' : 'var(--verified)';
+            const sevLabel = sev >= 7 ? 'HIGH / URGENT' : sev >= 4 ? 'MEDIUM' : 'LOW';
+            const reasoning = severityTrace?.reasoning || `Assessed as severity level ${sev}/10 based on civic impact.`;
 
             return (
-              <div className="mb-8 p-6 rounded-2xl border border-border-subtle bg-card shadow-sm flex flex-col md:flex-row items-center md:items-start gap-8">
-                <div className="flex flex-col items-center shrink-0 w-32 relative">
-                  <svg viewBox="0 0 100 55" className="w-full">
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" strokeWidth="12" stroke="var(--bg-dark-accent)" strokeLinecap="round" opacity="0.1"/>
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" strokeWidth="12" stroke={strokeColor} strokeLinecap="round" strokeDasharray={arcLength} strokeDashoffset={arcLength - progress} />
-                  </svg>
-                  <div className="absolute top-7 flex flex-col items-center">
-                    <span className="text-3xl font-bold text-dark leading-none">{issue.severityScore}</span>
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider mt-1 text-dark">
-                    {label}
+              /* Asset-tag style severity block */
+              <div className="asset-tag mb-8">
+                <div className="asset-tag__stub">
+                  <span
+                    className={`asset-tag__score ${sev >= 7 ? 'asset-tag__score--high' : sev >= 4 ? 'asset-tag__score--medium' : 'asset-tag__score--low'}`}
+                  >
+                    {sev}
+                  </span>
+                  <span
+                    className="text-center"
+                    style={{
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize: '0.5625rem',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: sevColor,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {sevLabel.split('/').map((l, i) => <span key={i} style={{ display: 'block' }}>{l.trim()}</span>)}
                   </span>
                 </div>
-                <div className="flex-1 text-center md:text-left mt-2 md:mt-0 flex flex-col justify-center">
-                  <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-2">AI Severity Assessment</h3>
-                  <p className="text-xl font-medium text-dark leading-snug">
+                <div className="asset-tag__body flex flex-col justify-center">
+                  <h3
+                    className="text-xs uppercase tracking-widest mb-2"
+                    style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: 'var(--text-secondary)' }}
+                  >
+                    AI Severity Assessment
+                  </h3>
+                  <p
+                    className="text-base leading-snug"
+                    style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, color: 'var(--ink)' }}
+                  >
                     {reasoning}
                   </p>
                 </div>
@@ -369,31 +506,33 @@ export default function IssueDetail() {
             );
           })()}
 
+          {/* Agent trace */}
           {issue.agentTrace && issue.agentTrace.length > 0 && (
-            <div className="mb-8 block">
-              <h3 className="text-sm font-bold text-dark mb-6 uppercase tracking-wider">AI Agent Reasoning</h3>
+            <div className="mb-8">
+              <h3
+                className="text-xs uppercase tracking-widest mb-6"
+                style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 500, color: 'var(--text-secondary)' }}
+              >
+                AI Agent Reasoning
+              </h3>
               
-              <div className="space-y-6 relative pl-3">
-                {/* Vertical line connecting them */}
-                <div className="absolute left-[31px] top-6 bottom-4 w-0.5 bg-border-subtle"></div>
+              <div className="space-y-5 relative pl-3">
+                {/* Vertical connector */}
+                <div
+                  className="absolute left-[31px] top-5 bottom-4 w-px"
+                  style={{ background: 'var(--paper-dim)' }}
+                />
                 
                 {issue.agentTrace.map((trace, index) => {
                   let Icon = CheckCircle;
-                  let iconColor = "text-mint";
-                  let iconBg = "bg-mint/20 border-mint";
                   
-                  if (index % 2 === 1) {
-                     iconColor = "text-lavender";
-                     iconBg = "bg-lavender/20 border-lavender";
-                  }
-
                   switch (trace.agent.toLowerCase()) {
-                     case 'perception': Icon = Eye; break;
+                     case 'perception':    Icon = Eye; break;
                      case 'deduplication': Icon = Search; break;
-                     case 'severity': Icon = AlertTriangle; break;
-                     case 'verification': Icon = CheckCircle; break;
-                     case 'routing': Icon = ArrowRight; break;
-                     case 'orchestrator': Icon = GitMerge; break;
+                     case 'severity':      Icon = AlertTriangle; break;
+                     case 'verification':  Icon = CheckCircle; break;
+                     case 'routing':       Icon = ArrowRight; break;
+                     case 'orchestrator':  Icon = GitMerge; break;
                   }
 
                   return (
@@ -402,18 +541,52 @@ export default function IssueDetail() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.15, duration: 0.4 }}
-                      className="relative z-10 flex gap-5"
+                      className="relative z-10 flex gap-4"
                     >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 border-card shadow-sm flex-shrink-0 ${iconBg}`}>
-                         <Icon className={`w-5 h-5 ${iconColor}`} />
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center border-2 flex-shrink-0"
+                        style={{
+                          background: index % 2 === 0 ? 'rgba(242,183,5,0.12)' : 'rgba(76,143,104,0.12)',
+                          borderColor: index % 2 === 0 ? 'var(--hazard)' : 'var(--verified)',
+                        }}
+                      >
+                         <Icon
+                          className="w-4 h-4"
+                          style={{ color: index % 2 === 0 ? 'var(--hazard)' : 'var(--verified)' }}
+                         />
                       </div>
-                      <div className="flex-1 bg-card border border-border-subtle shadow-sm rounded-2xl p-4 mt-0.5 hover:shadow-md transition-shadow">
+                      <div
+                        className="flex-1 p-4 mt-0.5"
+                        style={{
+                          background: '#fff',
+                          border: '1px solid var(--paper-dim)',
+                          borderRadius: '3px',
+                        }}
+                      >
                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-2 gap-1 sm:gap-4">
-                           <span className="font-bold text-dark text-sm">{trace.agent} Agent</span>
-                           <span className="text-xs text-muted font-medium whitespace-nowrap">{formatRelativeTime(trace.timestamp)}</span>
+                           <span
+                            className="text-sm font-semibold"
+                            style={{
+                              fontFamily: "'IBM Plex Mono', monospace",
+                              color: 'var(--hazard)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                            }}
+                           >
+                            {trace.agent} Agent
+                           </span>
+                           <span
+                            className="text-xs whitespace-nowrap"
+                            style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}
+                           >
+                            {formatRelativeTime(trace.timestamp)}
+                           </span>
                          </div>
-                         <p className="text-sm text-muted leading-relaxed font-medium">
-                           {trace.reasoning}
+                         <p
+                          className="text-sm leading-relaxed"
+                          style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}
+                         >
+                          {trace.reasoning}
                          </p>
                       </div>
                     </motion.div>
@@ -423,15 +596,33 @@ export default function IssueDetail() {
             </div>
           )}
 
+          {/* Verify block — not yet verified */}
           {user && user.uid !== issue.reporterId && !hasVerified && (
-            <div className="mb-8 block bg-page p-6 rounded-2xl border border-border-subtle">
-               <h3 className="text-lg font-bold text-dark mb-2">Community Verification</h3>
-               <p className="text-sm text-muted mb-4">Help the community by verifying if this issue still exists. You earn +5 points for verifying.</p>
+            <div
+              className="mb-8 p-5"
+              style={{
+                background: 'var(--paper)',
+                border: '1px solid var(--paper-dim)',
+                borderRadius: '3px',
+              }}
+            >
+               <h3
+                className="text-base font-semibold mb-1"
+                style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}
+               >
+                Community Verification
+               </h3>
+               <p
+                className="text-sm mb-4"
+                style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--text-secondary)' }}
+               >
+                Help the community by verifying if this issue still exists. You earn +5 points for verifying.
+               </p>
                <div className="flex flex-col sm:flex-row gap-3">
                  <button
                    onClick={() => handleVerify('confirm')}
                    disabled={isVerifying}
-                   className="flex items-center justify-center gap-2 bg-dark bg-gradient-to-b from-white/15 to-transparent text-white font-medium px-4 py-2.5 rounded-lg hover:brightness-110 transition flex-1 disabled:opacity-50"
+                   className="btn-primary flex-1"
                  >
                    {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                    Confirm this exists
@@ -439,27 +630,53 @@ export default function IssueDetail() {
                  <button
                    onClick={() => handleVerify('reject')}
                    disabled={isVerifying}
-                   className="flex items-center justify-center gap-2 bg-card text-dark border border-border-subtle font-medium px-4 py-2.5 rounded-lg hover:bg-page transition flex-1 disabled:opacity-50"
+                   className="btn-secondary flex-1"
                  >
-                   {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 text-danger" />}
+                   {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" style={{ color: 'var(--signal)' }} />}
                    Mark as resolved/fake
                  </button>
                </div>
             </div>
           )}
 
+          {/* Already verified */}
           {user && user.uid !== issue.reporterId && hasVerified && (
-            <div className="mb-8 block bg-success/10 p-4 rounded-2xl border border-success/30 flex items-center justify-between">
+            <div
+              className="mb-8 p-4 flex items-center justify-between"
+              style={{
+                background: 'rgba(76,143,104,0.08)',
+                border: '1px solid rgba(76,143,104,0.25)',
+                borderRadius: '3px',
+              }}
+            >
               <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-success" />
+                 <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(76,143,104,0.18)' }}
+                 >
+                    <CheckCircle className="w-5 h-5" style={{ color: 'var(--verified)' }} />
                  </div>
                  <div>
-                   <h3 className="text-sm font-bold text-dark">You've verified this issue</h3>
-                   <p className="text-xs text-muted">Thank you for contributing to the community!</p>
+                   <h3
+                    className="text-sm font-semibold"
+                    style={{ fontFamily: "'IBM Plex Sans', sans-serif", color: 'var(--ink)' }}
+                   >
+                    You've verified this issue
+                   </h3>
+                   <p
+                    className="text-xs"
+                    style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--text-secondary)' }}
+                   >
+                    Thank you for contributing to the community!
+                   </p>
                  </div>
               </div>
-              <span className="text-sm font-bold text-success">+5 pts</span>
+              <span
+                className="text-sm font-bold"
+                style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--verified)' }}
+              >
+                +5 pts
+              </span>
             </div>
           )}
         </div>

@@ -8,6 +8,7 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
+import Landing from './pages/Landing';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Report from './pages/Report';
@@ -15,7 +16,6 @@ import IssueDetail from './pages/IssueDetail';
 import Leaderboard from './pages/Leaderboard';
 import Admin from './pages/Admin';
 import Profile from './pages/Profile';
-import AdminReports from './pages/AdminReports';
 
 export default function App() {
   return (
@@ -23,24 +23,26 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route element={<Layout />}>
-            {/* Public routes inside layout */}
-            <Route path="/" element={<Home />} />
-            <Route path="/issue/:id" element={<IssueDetail />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/reports" element={<AdminReports />} />
-            
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/report" element={<Report />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/profile" element={<Profile />} />
+            {/* Landing page — no layout chrome */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route element={<Layout />}>
+              {/* Public routes inside layout */}
+              <Route path="/home" element={<Home />} />
+              <Route path="/issue/:id" element={<IssueDetail />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/:subpage" element={<Admin />} />
+              
+              {/* Protected routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/report" element={<Report />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/profile" element={<Profile />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
