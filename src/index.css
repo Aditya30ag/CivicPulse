@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
@@ -18,6 +19,24 @@
     --nav-glass-border: rgba(24, 30, 21, 0.06);
     --nav-glass-highlight: rgba(255, 255, 255, 0.6); 
   }
+
+  .dark {
+    --bg-page: #0f1210;
+    --bg-card: #1a1f1b;
+    --bg-dark-accent: #88b56a;
+    --text-primary: #f4f6f2;
+    --text-secondary: #9aa39a;
+    --border-subtle: #2a322b;
+    --accent-mint: #34d0a4;
+    --accent-lavender: #b184f7;
+    --accent-success: #34d0a4;
+    --accent-warning: #f5a623;
+    --accent-danger: #f87171;
+    --nav-glass-bg: rgba(15, 18, 16, 0.55);
+    --nav-glass-border: rgba(255, 255, 255, 0.08);
+    --nav-glass-highlight: rgba(255, 255, 255, 0.05);
+  }
+
   body {
     background-color: var(--bg-page);
     background-image:
@@ -27,6 +46,7 @@
     color: var(--text-primary);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 }
 
@@ -51,3 +71,4 @@
   
   --color-primary: var(--bg-dark-accent);
 }
+
