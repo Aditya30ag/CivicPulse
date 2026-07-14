@@ -8,15 +8,6 @@
      name="description"
      content="AI-powered civic issue reporting platform connecting citizens and authorities."
      />
-    <script>
-      (function () {
-        var savedTheme = localStorage.getItem('civicpulse-theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-          document.documentElement.classList.add('dark');
-        }
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

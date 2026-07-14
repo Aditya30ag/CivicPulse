@@ -1,10 +1,8 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Home, PlusCircle, Trophy, User, Activity, Sun, Moon } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { Home, PlusCircle, Trophy, User, Activity } from 'lucide-react';
 
 export default function Layout() {
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
 
   const navItems = [
     { label: 'Home', path: '/', icon: <Home className="w-5 h-5 lg:w-4 lg:h-4" /> },
@@ -16,15 +14,6 @@ export default function Layout() {
 
   return (
     <div className="h-[100dvh] bg-page flex flex-col font-sans overflow-hidden">
-      {/* Mobile Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        aria-label="Toggle dark mode"
-        className="lg:hidden fixed top-4 right-4 z-50 flex items-center justify-center w-10 h-10 rounded-full bg-card border border-border-subtle shadow-md text-dark"
-      >
-        {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-      </button>
-
       {/* Desktop Top Nav */}
       <nav className="hidden lg:flex items-center justify-between px-8 py-3.5 text-main sticky top-0 z-50 backdrop-blur-xl backdrop-saturate-150 bg-[var(--nav-glass-bg)] border-b border-[var(--nav-glass-border)] shadow-[0_1px_24px_rgba(24,30,21,0.08),inset_0_1px_0_var(--nav-glass-highlight)]">
         <Link to="/" className="flex items-center gap-2">
@@ -58,13 +47,6 @@ export default function Layout() {
             );
           })}
         </div>
-        <button
-          onClick={toggleTheme}
-          aria-label="Toggle dark mode"
-          className="ml-2 flex items-center justify-center w-9 h-9 rounded-full text-muted hover:text-mint transition-colors cursor-pointer"
-        >
-          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
       </nav>
 
       {/* Main Content Area */}
