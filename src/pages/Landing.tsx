@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
+import LandingNavbar from '../components/LandingNavbar';
 
 /* ── Ticker data (duplicated for seamless loop) ─────────────────────── */
 const TICKER_ENTRIES = [
@@ -82,55 +83,7 @@ export default function Landing() {
       ═══════════════════════════════════════════════════════════════ */}
       <div className="bp-grid" style={{ position: 'relative' }}>
 
-        {/* NAV */}
-        <nav style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: 'clamp(16px,3vw,20px) clamp(20px,5vw,64px)',
-          color: 'var(--paper)', position: 'relative', zIndex: 5,
-          borderBottom: '1px solid var(--grid)',
-        }}>
-          {/* Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: 28, height: 28, flexShrink: 0 }}>
-              <svg viewBox="0 0 30 30" fill="none" width="28" height="28">
-                <circle cx="15" cy="15" r="13" stroke="var(--hazard)" strokeWidth="2"/>
-                <circle cx="15" cy="15" r="3.2" fill="var(--hazard)"/>
-                <path d="M15 2 L15 8 M15 22 L15 28 M2 15 L8 15 M22 15 L28 15" stroke="var(--hazard)" strokeWidth="1.6"/>
-              </svg>
-            </div>
-            <span style={{
-              fontFamily: "'Big Shoulders Display', sans-serif",
-              fontWeight: 900, fontSize: '1.35rem',
-              textTransform: 'uppercase', letterSpacing: '0.04em', color: 'white',
-            }}>
-              Civic<span style={{ color: 'var(--hazard)' }}>Pulse</span>
-            </span>
-          </div>
-
-          {/* Links */}
-          <ul style={{
-            display: 'flex', gap: 'clamp(14px,3vw,32px)', listStyle: 'none',
-            margin: 0, padding: 0, fontSize: '0.875rem',
-          }} className="landing-nav-links">
-            {[['#map','Map'],['#trace','Agent Trace'],['#admin','Admin'],['#board','Leaderboard']].map(([href, label]) => (
-              <li key={href}>
-                <a
-                  href={href}
-                  style={{ color: 'rgba(238,241,236,0.75)', textDecoration: 'none', transition: 'color .15s', fontWeight: 500 }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.75)')}
-                >
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          {/* CTA */}
-          <Link to="/report" className="btn-primary" style={{ padding: '9px 18px', fontSize: '0.875rem' }}>
-            Report Issue
-          </Link>
-        </nav>
+        <LandingNavbar />
 
         {/* HERO BODY — two-column */}
         <div style={{
@@ -521,18 +474,159 @@ export default function Landing() {
       {/* ═══════════════════════════════════════════════════════════════
           FOOTER
       ═══════════════════════════════════════════════════════════════ */}
-      <div className="bp-grid">
+      <div className="bp-grid text-white">
         <footer style={{
-          padding: 'clamp(20px,4vw,30px) clamp(20px,5vw,64px)',
+          padding: 'clamp(40px,6vw,60px) clamp(20px,5vw,64px) clamp(20px,4vw,30px)',
           color: 'rgba(238,241,236,0.65)',
-          fontSize: '0.75rem',
-          display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px',
+          fontSize: '0.8rem',
           position: 'relative', zIndex: 2,
           borderTop: '1px solid var(--grid)',
         }}>
-          <div>© Civic Pulse — Ward-level civic reporting</div>
-          <div style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
-            SYSTEM STATUS: <span style={{ color: 'var(--verified)' }}>NOMINAL</span>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '40px',
+            marginBottom: '40px'
+          }}>
+            {/* Column 1: Brand */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <svg viewBox="0 0 30 30" fill="none" width="20" height="20">
+                  <circle cx="15" cy="15" r="13" stroke="var(--hazard)" strokeWidth="2"/>
+                  <circle cx="15" cy="15" r="3.2" fill="var(--hazard)"/>
+                  <path d="M15 2 L15 8 M15 22 L15 28 M2 15 L8 15 M22 15 L28 15" stroke="var(--hazard)" strokeWidth="1.6"/>
+                </svg>
+                <span style={{
+                  fontFamily: "'Big Shoulders Display', sans-serif",
+                  fontWeight: 900, fontSize: '1.2rem',
+                  textTransform: 'uppercase', letterSpacing: '0.04em', color: 'white',
+                }}>
+                  Civic<span style={{ color: 'var(--hazard)' }}>Pulse</span>
+                </span>
+              </div>
+              <p style={{ fontSize: '0.75rem', lineHeight: '1.5', color: 'rgba(238,241,236,0.5)', maxWidth: '250px' }}>
+                A multi-agent orchestrated infrastructure monitoring and hazard dispatch routing platform.
+              </p>
+            </div>
+
+            {/* Column 2: Platform Links */}
+            <div>
+              <h4 style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--hazard)',
+                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px'
+              }}>Platform</h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <li>
+                  <Link to="/home" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Live Incidents Map
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/report" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Report a Hazard
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/leaderboard" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Leaderboard & Ranks
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/admin" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Ward Administrator
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Resources & Info */}
+            <div>
+              <h4 style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--hazard)',
+                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px'
+              }}>Resources</h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <li>
+                  <Link to="/faq" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Help & Support FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/guidelines" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Community Guidelines
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/privacy" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Privacy Policy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: System Status */}
+            <div>
+              <h4 style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--hazard)',
+                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px'
+              }}>Network Health</h4>
+              <div style={{
+                background: 'rgba(0,0,0,0.2)',
+                border: '1px solid var(--grid)',
+                borderRadius: '3px',
+                padding: '12px',
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.7rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>STATUS:</span>
+                  <span style={{ color: 'var(--verified)', fontWeight: 'bold' }}>NOMINAL</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>NODES:</span>
+                  <span style={{ color: 'white' }}>18 ACTIVE</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>VERSION:</span>
+                  <span style={{ color: 'white' }}>v2.4.1</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderTop: '1px solid var(--grid)', paddingTop: '20px',
+            fontSize: '0.7rem', color: 'rgba(238,241,236,0.4)', flexWrap: 'wrap', gap: '10px'
+          }}>
+            <div>© Civic Pulse Network — Decentralized Ward Administration</div>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+              GEOHASH INDEXING ACTIVE
+            </div>
           </div>
         </footer>
       </div>
