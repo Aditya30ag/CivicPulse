@@ -17,6 +17,7 @@ import Leaderboard from './pages/Leaderboard';
 import Admin from './pages/Admin';
 import Profile from './pages/Profile';
 import FAQ from './pages/FAQ';
+import Terms from './pages/Terms';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
               {/* Public routes inside layout */}
               <Route path="/home" element={<Home />} />
               <Route path="/faq" element={<FAQ />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="/issue/:id" element={<IssueDetail />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/:subpage" element={<Admin />} />
