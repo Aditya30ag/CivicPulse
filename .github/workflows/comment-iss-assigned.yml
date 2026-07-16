@@ -7,8 +7,8 @@ on:
 permissions:
   # Grant write permissions for issues to allow commenting on issues
   issues: write
-  # Grant write permissions for contents to allow access to repository content
-  contents: write
+  # Grant read permissions for contents
+  contents: read
 
 jobs:
   comment:
