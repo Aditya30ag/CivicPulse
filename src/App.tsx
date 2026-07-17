@@ -19,6 +19,8 @@ import Profile from './pages/Profile';
 import FAQ from './pages/FAQ';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
+import Security from './pages/Security';
+
 
 export default function App() {
   return (
@@ -32,9 +34,12 @@ export default function App() {
             <Route path="/faq" element={<FAQ />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/security" element={<Security />} />
             <Route element={<Layout />}>
               {/* Public routes inside layout */}
               <Route path="/home" element={<Home />} />
+              <Route path="/security" element={<Security />} />
+
               <Route path="/issue/:id" element={<IssueDetail />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/:subpage" element={<Admin />} />

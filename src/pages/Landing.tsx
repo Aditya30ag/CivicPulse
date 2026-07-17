@@ -584,6 +584,13 @@ export default function Landing() {
                     Privacy Policy
                   </Link>
                 </li>
+                <li>
+                  <Link to="/security" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
+                    Security & Compliance
+                  </Link>
+                </li>
               </ul>
             </div>
 
