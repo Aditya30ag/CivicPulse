@@ -31,6 +31,9 @@ export default function App() {
             {/* Landing page — no layout chrome */}
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route element={<Layout />}>
               {/* Public routes inside layout */}
               <Route path="/home" element={<Home />} />

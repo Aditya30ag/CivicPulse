@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import LandingNavbar from '../components/LandingNavbar';
 import {
   FileText,
   Search,
@@ -313,7 +314,8 @@ export default function Terms() {
   };
 
   return (
-    <div className="flex-1 bg-paper text-ink overflow-y-auto" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+    <div className="min-h-screen bg-paper text-ink flex flex-col" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <LandingNavbar />
       
       {/* ═══════════════════════════════════════════════════════════════
           HEADER Banner — Blueprint grid style
@@ -340,13 +342,6 @@ export default function Terms() {
               <span className="text-white font-bold">NODE-v2.4.1 (GPL-3.0)</span>
             </div>
           </div>
-        </div>
-
-        {/* Global Breadcrumb */}
-        <div className="max-w-6xl mx-auto mt-6">
-          <Link to="/" className="text-xs font-mono text-slate-400 hover:text-white transition no-underline">
-            &larr; Return to Landing
-          </Link>
         </div>
       </div>
 
@@ -423,7 +418,7 @@ export default function Terms() {
               {filteredSections.map(section => (
                 <div
                   key={section.id}
-                  ref={el => (sectionRefs.current[section.id] = el)}
+                  ref={el => { sectionRefs.current[section.id] = el; }}
                   className="bg-white border border-paper-dim rounded p-6 shadow-sm space-y-4 hover:border-slate-300 transition"
                   onMouseEnter={() => markSectionRead(section.id)}
                 >

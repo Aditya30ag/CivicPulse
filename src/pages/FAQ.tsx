@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import LandingNavbar from '../components/LandingNavbar';
 import {
   Search,
   ChevronDown,
@@ -301,7 +302,9 @@ export default function FAQ() {
   };
 
   return (
-    <div className="flex-1 bg-paper text-ink overflow-y-auto" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+    <div className="min-h-screen bg-paper text-ink flex flex-col" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <LandingNavbar />
+      
       {/* ═══════════════════════════════════════════════════════════════
           HEADER — Blueprint Grid Theme
       ═══════════════════════════════════════════════════════════════ */}
@@ -335,13 +338,6 @@ export default function FAQ() {
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">SLA Uptime</span>
             </div>
           </div>
-        </div>
-
-        {/* Global Breadcrumb */}
-        <div className="max-w-6xl mx-auto mt-6">
-          <Link to="/" className="text-xs font-mono text-slate-400 hover:text-white transition no-underline">
-            &larr; Return to Landing
-          </Link>
         </div>
       </div>
 
