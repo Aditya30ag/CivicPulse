@@ -9,6 +9,7 @@ export default function LandingNavbar() {
     { href: isLanding ? '#trace' : '/#trace', label: 'Agent Trace' },
     { href: isLanding ? '#admin' : '/#admin', label: 'Admin' },
     { href: isLanding ? '#board' : '/#board', label: 'Leaderboard' },
+    { href: '/about', label: 'About' },
   ];
 
   return (

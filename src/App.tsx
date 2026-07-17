@@ -19,6 +19,7 @@ import Profile from './pages/Profile';
 import FAQ from './pages/FAQ';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
+import About from './pages/About';
 
 export default function App() {
   return (
@@ -32,9 +33,14 @@ export default function App() {
             <Route path="/faq" element={<FAQ />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/about" element={<About />} />
             <Route element={<Layout />}>
               {/* Public routes inside layout */}
               <Route path="/home" element={<Home />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/about" element={<About />} />
               <Route path="/issue/:id" element={<IssueDetail />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/:subpage" element={<Admin />} />
