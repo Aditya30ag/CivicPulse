@@ -641,27 +641,33 @@ export default function Landing() {
                 fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--hazard)',
                 textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px'
               }}>Network Health</h4>
-              <div style={{
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid var(--grid)',
-                borderRadius: '3px',
-                padding: '12px',
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '0.7rem'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>STATUS:</span>
-                  <span style={{ color: 'var(--verified)', fontWeight: 'bold' }}>NOMINAL</span>
+              <Link to="/status" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid var(--grid)',
+                  borderRadius: '3px',
+                  padding: '12px',
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--hazard)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--grid)')}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: 'rgba(238,241,236,0.5)' }}>STATUS:</span>
+                    <span style={{ color: 'var(--verified)', fontWeight: 'bold' }}>NOMINAL</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: 'rgba(238,241,236,0.5)' }}>NODES:</span>
+                    <span style={{ color: 'white' }}>18 ACTIVE</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'rgba(238,241,236,0.5)' }}>VERSION:</span>
+                    <span style={{ color: 'white' }}>v2.4.1</span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>NODES:</span>
-                  <span style={{ color: 'white' }}>18 ACTIVE</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>VERSION:</span>
-                  <span style={{ color: 'white' }}>v2.4.1</span>
-                </div>
-              </div>
+              </Link>
             </div>
           </div>
 
