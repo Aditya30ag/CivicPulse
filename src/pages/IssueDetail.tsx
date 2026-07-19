@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { MapPin, Clock, Loader2, User, Eye, Search, AlertTriangle, CheckCircle, ArrowRight, XCircle, GitMerge } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 
 interface AgentTraceEntry {
   agent: string;
@@ -72,24 +73,13 @@ function statusChipClass(status: string) {
 export default function IssueDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const [issue, setIssue] = useState<IssueData | null>(null);
   const [reporter, setReporter] = useState<ReporterData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasVerified, setHasVerified] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    if (user && db) {
-      const userRef = doc(db, 'users', user.uid);
-      getDoc(userRef).then(snap => {
-        if (snap.exists() && snap.data().role === 'admin') {
-          setIsAdmin(true);
-        }
-      }).catch(console.error);
-    }
-  }, [user]);
 
   useEffect(() => {
     if (!id || !db) return;
@@ -300,17 +290,26 @@ export default function IssueDetail() {
         <div className="p-5 sm:p-6 md:p-8">
           {/* Status + ID row */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            <select 
-              className={statusChipClass(issue.status)}
-              value={issue.status}
-              onChange={(e) => handleUpdateStatus(e.target.value)}
-              style={{ cursor: 'pointer', background: 'inherit' }}
-            >
-              <option value="reported">Reported</option>
-              <option value="community_verified">Verified</option>
-              <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
-            </select>
+            {isAdmin ? (
+              <select
+                className={statusChipClass(issue.status)}
+                value={issue.status}
+                onChange={(e) => handleUpdateStatus(e.target.value)}
+                style={{ cursor: 'pointer', background: 'inherit' }}
+              >
+                <option value="reported">Reported</option>
+                <option value="community_verified">Verified</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+              </select>
+            ) : (
+              <span className={statusChipClass(issue.status)}>
+                {issue.status === 'community_verified' ? 'Verified'
+                  : issue.status === 'in_progress' ? 'In Progress'
+                  : issue.status === 'reported' ? 'Reported'
+                  : 'Resolved'}
+              </span>
+            )}
             <span
               style={{
                 fontFamily: "'IBM Plex Mono', monospace",

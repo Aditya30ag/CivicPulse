@@ -33,10 +33,6 @@ Cities struggle with civic issue management—potholes, water leaks, and infrast
 
 ---
 
-## Demo
-
-- **Live Application**: [[DEPLOYMENT_URL_HERE](https://civic-pulse-1066023390088.asia-southeast1.run.app)]
-
 ## Architecture
 
 [INSERT ARCHITECTURE DIAGRAM]

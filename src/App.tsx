@@ -6,6 +6,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 import Landing from './pages/Landing';
@@ -36,9 +37,13 @@ export default function App() {
               {/* Public routes inside layout */}
               <Route path="/home" element={<Home />} />
               <Route path="/issue/:id" element={<IssueDetail />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/admin/:subpage" element={<Admin />} />
-              
+
+              {/* Admin-only routes */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/:subpage" element={<Admin />} />
+              </Route>
+
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/report" element={<Report />} />
