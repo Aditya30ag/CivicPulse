@@ -1,16 +1,20 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Home, PlusCircle, Trophy, User, Activity } from 'lucide-react';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 
 export default function Layout() {
   const location = useLocation();
+  const { isAdmin } = useIsAdmin();
 
-  const navItems = [
+  const allNavItems = [
     { label: 'Home', path: '/home', icon: <Home className="w-5 h-5 lg:w-4 lg:h-4" /> },
     { label: 'Report', path: '/report', icon: <PlusCircle className="w-5 h-5 lg:w-4 lg:h-4" /> },
     { label: 'Leaderboard', path: '/leaderboard', icon: <Trophy className="w-5 h-5 lg:w-4 lg:h-4" /> },
     { label: 'Profile', path: '/profile', icon: <User className="w-5 h-5 lg:w-4 lg:h-4" /> },
-    { label: 'Admin', path: '/admin', icon: <Activity className="w-5 h-5 lg:w-4 lg:h-4" /> },
+    { label: 'Admin', path: '/admin', icon: <Activity className="w-5 h-5 lg:w-4 lg:h-4" />, adminOnly: true },
   ];
+
+  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden" style={{ background: 'var(--paper)' }}>

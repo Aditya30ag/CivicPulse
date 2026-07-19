@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link, NavLink, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, updateDoc, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDocs, onSnapshot, query, orderBy, limit, startAfter, updateDoc, setDoc, where } from 'firebase/firestore';
 import { Loader2, LayoutList, Map as MapIcon, Activity, MapPin, AlertTriangle, User, Eye, Search, CheckCircle, ArrowRight, Lightbulb, ArrowUpRight, ArrowDownRight, Minus, GitMerge, Clock, ClipboardList } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -212,7 +212,7 @@ export default function Admin() {
       const snapshot = await getDocs(reportsQuery);
       const data = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...(doc.data() as Record<string, unknown>)
       }));
 
       if (loadMore) {
@@ -285,10 +285,13 @@ export default function Admin() {
             repQuery = query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(20));
           }
           const repSnap = await getDocs(repQuery);
-          const recentReports = repSnap.docs.map(d => ({
-            category: d.data().category,
-            severityScore: d.data().severityScore || 5
-          }));
+          const recentReports = repSnap.docs.map(d => {
+            const data = d.data() as { category: string; severityScore?: number };
+            return {
+              category: data.category,
+              severityScore: data.severityScore || 5
+            };
+          });
 
           if (recentReports.length > 0) {
             try {
