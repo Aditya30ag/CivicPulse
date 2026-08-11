@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, arrayUnion, doc, orderBy } from 'firebase/firestore';
 import { MapPin, Upload, X, Loader2, Image as ImageIcon, Video, CheckCircle2 } from 'lucide-react';
-import { analyzeIssueImage, checkDuplicateIssue } from '../lib/gemini';
+import { analyzeIssueImage, checkDuplicateIssue, processReportPipeline } from '../lib/gemini';
 import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
 
 const uploadToCloudinary = async (file: File): Promise<string> => {
@@ -247,12 +247,39 @@ useEffect(() => {
       matchingDocs.sort((a, b) => a.distance - b.distance);
       matchingDocs = matchingDocs.slice(0, 3);
 
+      let pipelineResult: any = null;
+      try {
+        pipelineResult = await processReportPipeline(uploadedMediaUrl, location, matchingDocs);
+      } catch (pipelineErr) {
+        console.warn("Pipeline endpoint fallback:", pipelineErr);
+      }
+
+      if (pipelineResult && pipelineResult.is_duplicate && pipelineResult.duplicate_candidate_id) {
+        const candidateId = pipelineResult.duplicate_candidate_id;
+        const updateData: any = {
+           verifiers: arrayUnion(user.uid),
+           agentTrace: arrayUnion(...(pipelineResult.agent_trace || []))
+        };
+
+        if (pipelineResult.severity?.is_escalation) {
+           updateData.severityScore = pipelineResult.final_severity;
+        }
+
+        await updateDoc(doc(db, 'reports', candidateId), updateData);
+        localStorage.removeItem("reportDraft");       
+        navigate(`/issue/${candidateId}`);
+        return;
+      }
+
+      // Legacy candidate comparison fallback if backend pipeline was unavailable
       let foundDuplicate = null;
-      for (const candidate of matchingDocs) {
-        const check = await checkDuplicateIssue(description, candidate.description);
-        if (check.isDuplicate) {
-          foundDuplicate = candidate;
-          break;
+      if (!pipelineResult) {
+        for (const candidate of matchingDocs) {
+          const check = await checkDuplicateIssue(description, candidate.description);
+          if (check.isDuplicate) {
+            foundDuplicate = candidate;
+            break;
+          }
         }
       }
 
