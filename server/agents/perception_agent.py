@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from pydantic import BaseModel, Field
-from backend_python.agents.base import BaseAgent
-from backend_python.services.gemini_service import generate_content_with_image, clean_and_parse_json
+from server.agents.base import BaseAgent
+from server.services.gemini_service import generate_content_with_image, clean_and_parse_json
 
 class PerceptionResult(BaseModel):
     category: str = Field(..., description="Issue category: Pothole, Garbage, Streetlight, Water Leakage, Other")

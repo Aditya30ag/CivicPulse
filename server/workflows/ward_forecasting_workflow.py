@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from backend_python.agents.forecasting_agent import ForecastingAgent
+from server.agents.forecasting_agent import ForecastingAgent
 
 class WardForecastingWorkflow:
     def __init__(self):

@@ -4,7 +4,7 @@ import requests
 from typing import Any, Dict
 from google import genai
 from google.genai import types
-from backend_python.config import settings
+from server.config import settings
 
 def get_genai_client() -> genai.Client:
     api_key = settings.GEMINI_API_KEY

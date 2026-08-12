@@ -1,8 +1,8 @@
 from typing import Any, Dict, List
-from backend_python.agents.perception_agent import PerceptionAgent
-from backend_python.agents.deduplication_agent import DeduplicationAgent
-from backend_python.agents.severity_agent import SeverityAgent
-from backend_python.agents.orchestrator_agent import OrchestratorAgent
+from server.agents.perception_agent import PerceptionAgent
+from server.agents.deduplication_agent import DeduplicationAgent
+from server.agents.severity_agent import SeverityAgent
+from server.agents.orchestrator_agent import OrchestratorAgent
 
 class ReportProcessingWorkflow:
     def __init__(self):

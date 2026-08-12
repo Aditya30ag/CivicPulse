@@ -1,6 +1,6 @@
 import cloudinary
 import cloudinary.uploader
-from backend_python.config import settings
+from server.config import settings
 
 def init_cloudinary():
     if settings.CLOUDINARY_CLOUD_NAME:

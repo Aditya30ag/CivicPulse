@@ -1,8 +1,8 @@
 import json
 from typing import Any, Dict, List, Literal
 from pydantic import BaseModel, Field
-from backend_python.agents.base import BaseAgent
-from backend_python.services.gemini_service import generate_text_content, clean_and_parse_json
+from server.agents.base import BaseAgent
+from server.services.gemini_service import generate_text_content, clean_and_parse_json
 
 class TrendPrediction(BaseModel):
     category: str = Field(..., description="Target issue category")

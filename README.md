@@ -116,10 +116,10 @@ graph TD
 
 ## Dedicated Python Multi-Agent Workflow Engine
 
-Civic Pulse features a dedicated, server-side Python Multi-Agent Workflow Engine (`backend_python/`) powered by FastAPI and the official `google-genai` Python SDK:
+Civic Pulse features a dedicated, server-side Python Multi-Agent Workflow Engine (`server/`) powered by FastAPI and the official `google-genai` Python SDK:
 
 ```
-backend_python/
+server/
 ├── main.py                          # FastAPI server & CORS setup
 ├── config.py                        # Environment & GenAI settings
 ├── requirements.txt                 # Python dependencies

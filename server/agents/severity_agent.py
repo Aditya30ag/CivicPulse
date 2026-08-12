@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from backend_python.agents.base import BaseAgent
+from server.agents.base import BaseAgent
 
 class SeverityAgent(BaseAgent):
     def __init__(self):

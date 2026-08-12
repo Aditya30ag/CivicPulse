@@ -1,8 +1,8 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend_python.config import settings
-from backend_python.routes import agent_router, upload_router
+from server.config import settings
+from server.routes import agent_router, upload_router
 
 app = FastAPI(
     title="Civic Pulse Python Multi-Agent Workflow Backend",
@@ -32,4 +32,4 @@ async def root():
     }
 
 if __name__ == "__main__":
-    uvicorn.run("backend_python.main:app", host=settings.HOST, port=settings.PORT, reload=True)
+    uvicorn.run("server.main:app", host=settings.HOST, port=settings.PORT, reload=True)

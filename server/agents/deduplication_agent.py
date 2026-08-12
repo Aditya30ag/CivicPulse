@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 from haversine import haversine, Unit
-from backend_python.agents.base import BaseAgent
-from backend_python.services.gemini_service import generate_text_content, clean_and_parse_json
+from server.agents.base import BaseAgent
+from server.services.gemini_service import generate_text_content, clean_and_parse_json
 
 class DuplicateCheckResult(BaseModel):
     similarity: float = Field(..., description="Similarity score between 0.0 and 1.0")

@@ -2,11 +2,11 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from backend_python.agents.perception_agent import PerceptionAgent
-from backend_python.agents.deduplication_agent import DeduplicationAgent
-from backend_python.agents.forecasting_agent import ForecastingAgent
-from backend_python.workflows.report_processing_workflow import ReportProcessingWorkflow
-from backend_python.workflows.ward_forecasting_workflow import WardForecastingWorkflow
+from server.agents.perception_agent import PerceptionAgent
+from server.agents.deduplication_agent import DeduplicationAgent
+from server.agents.forecasting_agent import ForecastingAgent
+from server.workflows.report_processing_workflow import ReportProcessingWorkflow
+from server.workflows.ward_forecasting_workflow import WardForecastingWorkflow
 
 router = APIRouter(prefix="/api/v1/agents", tags=["Agents"])
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from backend_python.services.cloudinary_service import upload_file_to_cloudinary
+from server.services.cloudinary_service import upload_file_to_cloudinary
 
 router = APIRouter(prefix="/api/v1/upload", tags=["Upload"])
 

@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from backend_python.agents.base import BaseAgent
+from server.agents.base import BaseAgent
 
 class OrchestratorAgent(BaseAgent):
     def __init__(self):
