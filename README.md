@@ -35,8 +35,6 @@ Cities struggle with civic issue management—potholes, water leaks, and infrast
 
 ## Architecture
 
-[INSERT ARCHITECTURE DIAGRAM]
-
 ```mermaid
 graph TD
     Client[React/Vite Frontend] --> Auth[Firebase Authentication]
@@ -113,43 +111,57 @@ graph TD
     K --> N[Resolve Top Priority Items]
     N --> DB[(Status Updated)]
 ```
-## Tech Stack
 
-| Layer              | Technology                                           |
-| ------------------ | ---------------------------------------------------- |
-| Frontend           | React 19, TypeScript, Vite                           |
-| Styling            | Tailwind CSS v4, Framer Motion, Lucide Icons         |
-| Geospatial         | Leaflet, React-Leaflet, Leaflet.Heat, Geofire-common |
-| Data Visualization | Recharts                                             |
-| Backend | Express.js |
-| Database | Firebase Firestore (Realtime NoSQL) |
-| Authentication | Firebase Authentication (Google Provider) |
-| AI Models | Google Gemini 2.5 Flash (via secure Express backend) |
-| Blob Storage | Cloudinary (via secure Express backend) |
-## Google Technologies Used
+## Multi-Agent Workflow Engine
 
-Civic Pulse is built on Google's AI and cloud ecosystem to deliver an intelligent, scalable, and real-time civic issue management platform.
+Civic Pulse features a dedicated, server-side Python Multi-Agent Workflow Engine (`server/`) powered by FastAPI and the official `google-genai` Python SDK:
 
-| Technology                                     | Purpose                                                                                                                                      |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Google AI Studio**                           | Core development and deployment platform used for building, testing, and deploying the application.                                          |
-| **Gemini 2.5 Flash**                           | Powers AI-driven image analysis through secure server-side API requests, issue categorization, severity assessment, structured data extraction, and intelligent reasoning workflows. |
-| **Firebase Firestore**                         | Serves as the real-time NoSQL database for storing civic reports, user data, verification records, agent traces, and analytics.              |
-| **Firebase Authentication**                    | Provides secure Google Sign-In authentication for citizens and administrators.                                                               |
-| **Firebase Hosting / Google Cloud Deployment** | Used for application deployment and public accessibility.                                                                                    |
-| **Google Maps Platform** *(if implemented)*    | Enables location-based issue reporting, mapping, and geospatial visualization.                                                               |
+```
+server/
+├── main.py                          # FastAPI server & CORS setup
+├── config.py                        # Environment & GenAI settings
+├── requirements.txt                 # Python dependencies
+├── agents/                          # Modular Agent Classes
+│   ├── base.py                      # BaseAgent abstract class & trace formatting
+│   ├── perception_agent.py          # PerceptionAgent (multimodal image perception & scoring)
+│   ├── deduplication_agent.py       # DeduplicationAgent (spatial distance & semantic similarity)
+│   ├── severity_agent.py            # SeverityAgent (visual urgency & escalation logic)
+│   ├── forecasting_agent.py         # ForecastingAgent (14-day ward infrastructure forecasting)
+│   └── orchestrator_agent.py        # OrchestratorAgent (pipeline state & trace compilation)
+├── workflows/                       # Orchestrated Multi-Agent Pipelines
+│   ├── report_processing_workflow.py# Sequential multi-agent report pipeline
+│   └── ward_forecasting_workflow.py # Ward analytics forecasting pipeline
+└── routes/                          # FastAPI REST endpoints (/api/v1/agents/*)
+```
 
-## Agentic AI Capabilities
-Civic Pulse does not treat AI as a mere chatbot; it orchestrates a specialized intelligence pipeline.
+### What the AI Agents Actually Do
 
-### Perception Agent
-Extracts structured attributes, title tags, and a localized severity rating from uploaded images through the Express backend using Gemini 2.5 Flash, title tags, and a localized severity rating directly from an uploaded image using Gemini 2.5 Flash.
+#### 1. Perception Agent (`perception_agent.py`)
+- **Trigger**: Called when a citizen uploads an image for an issue (`/api/v1/agents/perceive`).
+- **Action**: Converts image bytes and sends to Gemini 2.5 Flash via `google-genai` SDK with strict Pydantic JSON schemas.
+- **Output**: Returns structured classification object: `category`, `severity` (1-10), `title`, `description`, and `reasoning`.
 
-### Deduplication Agent
-Prevents database bloating by calculating spatial bounds using the user's geohash, querying Firestore for reports within a 100-meter radius, and evaluating semantic similarity through secure backend requests to automatically merge duplicate reports or escalate severity when necessary.
+#### 2. Deduplication Agent (`deduplication_agent.py`)
+- **Trigger**: Executed during report submission pipeline (`/api/v1/agents/process-report`).
+- **Action**: Calculates spatial distances using Haversine formula for reports within 100 meters, then passes descriptions to Gemini 2.5 Flash for semantic comparison.
+- **Output**: Returns `similarity` score (0 to 1) and `isDuplicate` flag (true if similarity > 0.8).
 
-### Forecasting Agent
-Continuously analyzes ward-level data within the administrative dashboard and generates predictive insights, identifying whether civic issues such as potholes, garbage accumulation, or water leakages are expected to increase or decrease over the next 14 days based on recent reporting patterns.
+#### 3. Severity & Escalation Agent (`severity_agent.py`)
+- **Trigger**: Evaluated when a duplicate report is detected during pipeline execution.
+- **Action**: Compares visual severity score of new report against candidate score.
+- **Output**: If new report indicates visual deterioration ($\ge 2$ level jump), escalates existing report's severity score and logs reasoning.
+
+#### 4. Orchestrator Agent (`orchestrator_agent.py`)
+- **Trigger**: Manages pipeline state during `ReportProcessingWorkflow`.
+- **Action**: Synthesizes output from Perception, Deduplication, and Severity agents into unified decision (`CREATE` or `MERGE`).
+- **Output**: Constructs an immutable, timestamped `agentTrace` array saved directly into Firestore.
+
+#### 5. Forecasting Agent (`forecasting_agent.py`)
+- **Trigger**: Executed during admin dashboard sweeps (`/api/v1/agents/forecast`).
+- **Action**: Analyzes 20 recent reports per ward using Gemini 2.5 Flash.
+- **Output**: Generates a 14-day infrastructure risk forecast containing `category`, `trend` (`increasing` | `stable` | `decreasing`), `confidence`, and analytical `reasoning`.
+
+---
 
 ## License
 This project is free software and available under the **GNU General Public License v3.0** (GPL-3.0). See the [LICENSE](LICENSE) file for more details.
