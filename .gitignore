@@ -7,3 +7,7 @@ coverage/
 .env*
 !.env.example
 pnpm-lock.yaml
+*.pyc
+__pycache__
+*__pycache__
+__pycache__/
