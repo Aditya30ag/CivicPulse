@@ -1,110 +1,314 @@
-/* ── Google Fonts ──────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+/* ── Google Fonts (must precede other @imports) ───────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
-/* ── Design Tokens ─────────────────────────────────────────────────────── */
+/* ── Dark mode via .dark class ────────────────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Design Tokens ────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Brand palette */
-    --ink:        #16283D;   /* deep blueprint navy */
-    --grid:       #2E4A66;   /* gridline blue */
-    --paper:      #EEF1EC;   /* cool paper white */
-    --paper-dim:  #DDE3DC;   /* recessed panels */
-    --hazard:     #F2B705;   /* survey yellow — primary accent */
-    --signal:     #D6483D;   /* signal red — critical / high severity */
-    --verified:   #4C8F68;   /* verified green — resolved / low sev / success */
+    color-scheme: light;
 
-    /* Legacy aliases kept so any surviving Tailwind refs still resolve */
-    --bg-page:          var(--paper);
-    --bg-card:          #ffffff;
-    --bg-dark-accent:   var(--ink);
-    --text-primary:     var(--ink);
-    --text-secondary:   #5A6B7A;
-    --border-subtle:    var(--paper-dim);
+    /* Brand palette — Trust blue + Civic teal */
+    --primary:        #2563eb;
+    --primary-strong: #1d4ed8;
+    --primary-soft:   #dbeafe;
+    --teal:           #0d9488;
+    --teal-soft:      #ccfbf1;
 
-    /* OLD accent aliases → mapped to new tokens so old class names still work */
-    --accent-mint:      var(--verified);
-    --accent-lavender:  var(--hazard);
-    --accent-success:   var(--verified);
-    --accent-warning:   var(--hazard);
-    --accent-danger:    var(--signal);
+    /* Surfaces */
+    --bg-page:        #f5f7fb;
+    --bg-card:        #ffffff;
+    --bg-elevated:    #ffffff;
+    --bg-subtle:      #eef2f8;
 
-    /* Nav */
-    --nav-glass-bg:        var(--ink);
-    --nav-glass-border:    var(--grid);
-    --nav-glass-highlight: rgba(255,255,255,0.04);
+    /* Text */
+    --text-primary:   #0f172a;
+    --text-secondary: #5b6b82;
+    --text-faint:     #8b9ab0;
+
+    /* Lines */
+    --border:         #e4e9f2;
+    --border-strong:  #cdd6e4;
+
+    /* Semantic */
+    --danger:         #ef4444;
+    --danger-soft:    #fee2e2;
+    --warning:        #f59e0b;
+    --warning-soft:   #fef3c7;
+    --success:        #10b981;
+    --success-soft:   #d1fae5;
+    --info:           #3b82f6;
+    --info-soft:      #dbeafe;
+
+    /* Dark surface constant (used for nav/footer on both themes) */
+    --dark-surface:   #0b1220;
+    --dark-surface-2: #101a2e;
+
+    /* Legacy aliases — remapped so surviving old class names still work */
+    --ink:            var(--text-primary);
+    --grid:           var(--border);
+    --paper:          var(--bg-page);
+    --paper-dim:      var(--border);
+    --hazard:         var(--warning);
+    --signal:         var(--danger);
+    --verified:       var(--success);
+    --text-main:      var(--text-primary);
+    --text-muted:     var(--text-secondary);
+    --border-subtle:  var(--border);
+    --bg-dark-accent: var(--dark-surface);
+    --nav-glass-bg:        rgba(255,255,255,0.72);
+    --nav-glass-border:    rgba(15,23,42,0.08);
+    --nav-glass-highlight: rgba(255,255,255,0.6);
+
+    --shadow-card: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.12);
+    --shadow-pop:  0 12px 32px -12px rgba(15,23,42,0.22);
   }
 
-  /* ── Base styles ───────────────────────────────────────────────────── */
+  .dark {
+    color-scheme: dark;
+
+    --primary:        #60a5fa;
+    --primary-strong: #3b82f6;
+    --primary-soft:   rgba(59,130,246,0.16);
+    --teal:           #2dd4bf;
+    --teal-soft:      rgba(45,212,191,0.16);
+
+    --bg-page:        #0b1220;
+    --bg-card:        #101a2e;
+    --bg-elevated:    #16213a;
+    --bg-subtle:      #0d1526;
+
+    --text-primary:   #e6edf7;
+    --text-secondary: #9fb0c7;
+    --text-faint:     #6b7c96;
+
+    --border:         #1c2942;
+    --border-strong:  #2a3a5c;
+
+    --danger:         #f87171;
+    --danger-soft:    rgba(248,113,113,0.14);
+    --warning:        #fbbf24;
+    --warning-soft:   rgba(251,191,36,0.14);
+    --success:        #34d399;
+    --success-soft:   rgba(52,211,153,0.14);
+    --info:           #60a5fa;
+    --info-soft:      rgba(96,165,250,0.14);
+
+    --dark-surface:   #0b1220;
+    --dark-surface-2: #101a2e;
+
+    --ink:            var(--text-primary);
+    --grid:           var(--border);
+    --paper:          var(--bg-page);
+    --paper-dim:      var(--border);
+    --hazard:         var(--warning);
+    --signal:         var(--danger);
+    --verified:       var(--success);
+    --text-main:      var(--text-primary);
+    --text-muted:     var(--text-secondary);
+    --border-subtle:  var(--border);
+    --nav-glass-bg:        rgba(11,18,32,0.72);
+    --nav-glass-border:    rgba(148,163,184,0.12);
+    --nav-glass-highlight: rgba(148,163,184,0.08);
+
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    --shadow-pop:  0 16px 40px -12px rgba(0,0,0,0.6);
+  }
+
+  /* ── Base ───────────────────────────────────────────────────────── */
+  * { border-color: var(--border); }
+
+  html { scroll-behavior: smooth; }
+
   body {
-    background-color: var(--paper);
-    color: var(--ink);
-    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-    line-height: 1.5;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
-  /* ── Universal focus ring ──────────────────────────────────────────── */
+  /* Universal focus ring — accessible */
   *:focus-visible {
-    outline: 3px solid var(--hazard);
+    outline: 2.5px solid var(--primary);
     outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection { background: var(--primary-soft); color: var(--text-primary); }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 2.5px solid var(--bg-page);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+}
+
+/* ── Tailwind theme extension ─────────────────────────────────────────── */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* Brand */
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-teal-brand: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+
+  /* Surfaces */
+  --color-page: var(--bg-page);
+  --color-card: var(--bg-card);
+  --color-elevated: var(--bg-elevated);
+  --color-subtle: var(--bg-subtle);
+
+  /* Text */
+  --color-ink: var(--text-primary);
+  --color-muted: var(--text-secondary);
+  --color-faint: var(--text-faint);
+
+  /* Lines */
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+
+  /* Semantic */
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  /* Dark surface constant */
+  --color-night: var(--dark-surface);
+  --color-night-2: var(--dark-surface-2);
+
+  /* ── Legacy aliases (old class names still compile) ─────────────── */
+  --color-paper:      var(--bg-page);
+  --color-paper-dim:  var(--border);
+  --color-grid:       var(--border);
+  --color-hazard:     var(--warning);
+  --color-signal:     var(--danger);
+  --color-verified:   var(--success);
+  --color-mint:       var(--teal);
+  --color-lavender:   var(--warning);
+  --color-success:    var(--success);
+  --color-warning:    var(--warning);
+  --color-danger:     var(--danger);
+  --color-dark:       var(--dark-surface);
+  --color-card:       var(--bg-card);
+  --color-text-main:  var(--text-primary);
+  --color-text-muted: var(--text-secondary);
+  --color-border-subtle: var(--border);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+
+  --animate-fade-up:   fade-up 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  --animate-fade-in:   fade-in 0.5s ease both;
+  --animate-float:     float 6s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4,0,0.6,1) infinite;
+  --animate-shimmer:   shimmer 1.6s linear infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0   rgba(239,68,68,0.45); }
+    70%  { box-shadow: 0 0 0 14px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0   rgba(239,68,68,0); }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position: 200% 0; }
   }
 }
 
-/* ── Tailwind theme extension ──────────────────────────────────────────── */
-@theme {
-  /* Fonts */
-  --font-sans:    'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Big Shoulders Display', ui-sans-serif, system-ui, sans-serif;
-  --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
-
-  /* Color tokens */
-  --color-ink:        var(--ink);
-  --color-grid:       var(--grid);
-  --color-paper:      var(--paper);
-  --color-paper-dim:  var(--paper-dim);
-  --color-hazard:     var(--hazard);
-  --color-signal:     var(--signal);
-  --color-verified:   var(--verified);
-
-  /* Legacy aliases so old Tailwind class names continue to compile */
-  --color-page:         var(--paper);
-  --color-card:         #ffffff;
-  --color-dark:         var(--ink);
-  --color-text-main:    var(--ink);
-  --color-text-muted:   #5A6B7A;
-  --color-border-subtle: var(--paper-dim);
-  --color-mint:         var(--verified);
-  --color-lavender:     var(--hazard);
-  --color-success:      var(--verified);
-  --color-warning:      var(--hazard);
-  --color-danger:       var(--signal);
-  --color-primary:      var(--ink);
+/* Inline shadow theme — utilities reference the runtime var so dark mode swaps correctly */
+@theme inline {
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
 }
 
-/* ── Blueprint grid mixin ──────────────────────────────────────────────── */
-/* Apply .bp-grid to any dark surface (nav, hero, admin header, etc.) */
+/* ── Reusable utility classes ─────────────────────────────────────────── */
+
+/* Glassmorphism surfaces */
+.glass {
+  background: var(--nav-glass-bg);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--nav-glass-border);
+}
+
+/* Hero mesh gradient */
+.gradient-hero {
+  background:
+    radial-gradient(52% 60% at 15% 12%, rgba(37,99,235,0.20) 0%, transparent 60%),
+    radial-gradient(44% 55% at 85% 18%, rgba(13,148,136,0.16) 0%, transparent 60%),
+    radial-gradient(60% 60% at 50% 100%, rgba(59,130,246,0.12) 0%, transparent 60%),
+    var(--bg-page);
+}
+.dark .gradient-hero {
+  background:
+    radial-gradient(52% 60% at 15% 12%, rgba(59,130,246,0.22) 0%, transparent 60%),
+    radial-gradient(44% 55% at 85% 18%, rgba(45,212,191,0.14) 0%, transparent 60%),
+    radial-gradient(60% 60% at 50% 100%, rgba(37,99,235,0.18) 0%, transparent 60%),
+    var(--bg-page);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(100deg, var(--primary), var(--teal));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Skeleton loading shimmer */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--bg-card) 50%, var(--bg-subtle) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: 10px;
+}
+
+/* ── Legacy blueprint helpers — restyled as soft dark surfaces ────────── */
 .bp-grid {
-  background-color: var(--ink);
+  background-color: var(--dark-surface);
   background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
-    radial-gradient(ellipse at 90% 10%, rgba(242,183,5,0.07) 0%, transparent 55%);
-  background-size: 40px 40px, 40px 40px, 100% 100%;
+    linear-gradient(rgba(148,163,184,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148,163,184,0.05) 1px, transparent 1px);
+  background-size: 44px 44px, 44px 44px;
 }
 
-/* ── Asset-tag card ────────────────────────────────────────────────────── */
-/* Outer wrapper: white card with a left severity-stub */
+/* ── Asset-tag card (legacy) — modernized ─────────────────────────────── */
 .asset-tag {
   display: flex;
-  background: #fff;
-  border: 1px solid var(--paper-dim);
-  border-radius: 3px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
   overflow: hidden;
   position: relative;
+  box-shadow: var(--shadow-card);
 }
-
-/* Left stub column */
 .asset-tag__stub {
   display: flex;
   flex-direction: column;
@@ -113,155 +317,154 @@
   width: 64px;
   min-width: 64px;
   padding: 12px 0;
-  border-right: 1px dashed var(--paper-dim);
-  position: relative;
+  border-right: 1px dashed var(--border);
   gap: 4px;
 }
-
-/* Perforation dots */
-.asset-tag__stub::before,
-.asset-tag__stub::after {
-  content: '';
-  display: block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--paper);
-  border: 1px solid var(--paper-dim);
-  position: absolute;
-}
-.asset-tag__stub::before { top: -5px; }
-.asset-tag__stub::after  { bottom: -5px; }
-
 .asset-tag__score {
-  font-family: 'Big Shoulders Display', sans-serif;
-  font-size: 2.25rem;
-  font-weight: 900;
+  font-family: 'Inter', sans-serif;
+  font-size: 1.9rem;
+  font-weight: 800;
   line-height: 1;
-  text-transform: uppercase;
 }
-.asset-tag__score--high   { color: var(--signal); }
-.asset-tag__score--medium { color: var(--hazard); }
-.asset-tag__score--low    { color: var(--verified); }
-
+.asset-tag__score--high   { color: var(--danger); }
+.asset-tag__score--medium { color: var(--warning); }
+.asset-tag__score--low    { color: var(--success); }
 .asset-tag__body {
   flex: 1;
   min-width: 0;
   padding: 14px 16px;
 }
 
-/* ── Status chips ──────────────────────────────────────────────────────── */
+/* ── Status chips (legacy) — modernized pills ─────────────────────────── */
 .status-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 10px;
-  border-radius: 2px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.6875rem; /* 11px */
-  font-weight: 500;
+  padding: 3px 11px;
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
 }
-.status-chip--open     { background: rgba(242,183,5,0.12);  color: #8a6500; border: 1px solid rgba(242,183,5,0.3); }
-.status-chip--progress { background: rgba(242,183,5,0.08);  color: #8a6500; border: 1px solid rgba(242,183,5,0.2); }
-.status-chip--verified { background: rgba(76,143,104,0.12); color: #2d6645; border: 1px solid rgba(76,143,104,0.3); }
-.status-chip--resolved { background: rgba(76,143,104,0.12); color: #2d6645; border: 1px solid rgba(76,143,104,0.3); }
-.status-chip--signal   { background: rgba(214,72,61,0.10);  color: #8a1f1a; border: 1px solid rgba(214,72,61,0.25); }
+.status-chip--open     { background: var(--danger-soft);  color: var(--danger);  border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+.status-chip--progress { background: var(--warning-soft); color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, transparent); }
+.status-chip--verified { background: var(--success-soft); color: var(--success); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+.status-chip--resolved { background: var(--success-soft); color: var(--success); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+.status-chip--signal   { background: var(--danger-soft);  color: var(--danger);  border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
 
-/* ── Buttons ───────────────────────────────────────────────────────────── */
-/* Primary CTA: solid hazard yellow, hard offset shadow */
+/* ── Buttons (legacy) — modernized ────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 20px;
-  background-color: var(--hazard);
-  color: var(--ink);
-  font-family: 'IBM Plex Sans', sans-serif;
+  gap: 8px;
+  padding: 10px 22px;
+  background: linear-gradient(180deg, var(--primary), var(--primary-strong));
+  color: #fff;
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
-  border-radius: 3px;
+  border-radius: 12px;
   border: none;
   cursor: pointer;
-  box-shadow: 3px 3px 0 rgba(0,0,0,0.28);
-  transition: box-shadow 150ms ease, transform 150ms ease;
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--primary) 55%, transparent);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
   text-decoration: none;
   white-space: nowrap;
 }
 .btn-primary:hover {
-  box-shadow: 4px 5px 0 rgba(0,0,0,0.30);
   transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--primary) 60%, transparent);
 }
-.btn-primary:active {
-  box-shadow: 1px 1px 0 rgba(0,0,0,0.20);
-  transform: translateY(1px);
-}
-.btn-primary:disabled,
-.btn-primary[disabled] {
-  opacity: 0.5;
-  pointer-events: none;
-}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled, .btn-primary[disabled] { opacity: 0.55; pointer-events: none; }
 
-/* Secondary: outlined, transparent */
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 20px;
-  background: transparent;
-  color: var(--ink);
-  font-family: 'IBM Plex Sans', sans-serif;
+  gap: 8px;
+  padding: 10px 22px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
-  border-radius: 3px;
-  border: 1.5px solid var(--grid);
+  border-radius: 12px;
+  border: 1.5px solid var(--border-strong);
   cursor: pointer;
-  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
   text-decoration: none;
   white-space: nowrap;
 }
 .btn-secondary:hover {
-  border-color: var(--hazard);
-  color: var(--hazard);
-  background: rgba(242,183,5,0.05);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 6px 16px -10px rgba(37,99,235,0.35);
 }
-.btn-secondary:disabled,
-.btn-secondary[disabled] {
-  opacity: 0.5;
-  pointer-events: none;
-}
+.btn-secondary:disabled, .btn-secondary[disabled] { opacity: 0.55; pointer-events: none; }
 
-/* ── Ticker animation (agent / activity feed) ──────────────────────────── */
+/* ── Animations ───────────────────────────────────────────────────────── */
 @keyframes ticker-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
+.ticker-scroll { animation: ticker-scroll 34s linear infinite; }
 
 @keyframes ring-pulse {
-  0%   { box-shadow: 0 0 0 0   rgba(214,72,61,0.5); }
-  70%  { box-shadow: 0 0 0 12px rgba(214,72,61,0); }
-  100% { box-shadow: 0 0 0 0   rgba(214,72,61,0); }
+  0%   { box-shadow: 0 0 0 0   rgba(239,68,68,0.5); }
+  70%  { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0   rgba(239,68,68,0); }
 }
+.marker-pulse { animation: ring-pulse 1.8s ease-out infinite; border-radius: 50%; }
 
-/* Critical pin pulse class */
-.marker-pulse {
-  animation: ring-pulse 1.8s ease-out infinite;
-  border-radius: 50%;
-}
-
-/* Pause all motion when prefers-reduced-motion is set */
+/* Pause motion for reduced-motion users */
 @media (prefers-reduced-motion: reduce) {
-  .marker-pulse           { animation: none; }
-  .ticker-scroll          { animation: none; }
-  *                       { transition-duration: 0.01ms !important; }
+  .marker-pulse, .ticker-scroll, .animate-float, .animate-fade-up, .animate-fade-in {
+    animation: none !important;
+  }
+  html { scroll-behavior: auto; }
+  * { transition-duration: 0.01ms !important; }
 }
 
-/* ── Leaflet icon override ─────────────────────────────────────────────── */
-.custom-leaflet-icon {
-  background: transparent;
-  border: none;
-}
+/* ── Leaflet overrides ────────────────────────────────────────────────── */
+.custom-leaflet-icon { background: transparent; border: none; }
 .custom-cluster-icon { background: transparent; border: none; }
+
+.leaflet-container {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-subtle);
+  z-index: 0;
+}
+
+/* Rounded, themed popups */
+.leaflet-popup-content-wrapper {
+  border-radius: 14px !important;
+  box-shadow: var(--shadow-pop) !important;
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border);
+}
+.leaflet-popup-content { margin: 14px 16px !important; }
+.leaflet-popup-tip { background: var(--bg-card) !important; }
+
+/* Themed zoom controls */
+.leaflet-bar a {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.leaflet-bar a:hover { background: var(--bg-subtle) !important; }
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--bg-card) 82%, transparent) !important;
+  color: var(--text-faint) !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a { color: var(--text-secondary) !important; }
+
+/* Heat layer subtlety */
+.leaflet-heatmap-layer { pointer-events: none; }

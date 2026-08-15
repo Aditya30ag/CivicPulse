@@ -1,64 +1,56 @@
 import { Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard } from 'lucide-react';
+import Logo from './ui/Logo';
+import Button from './ui/Button';
+import ThemeToggle from './ui/ThemeToggle';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LandingNavbar() {
   const location = useLocation();
+  const { user } = useAuth();
   const isLanding = location.pathname === '/';
 
   const navItems = [
     { href: isLanding ? '#map' : '/#map', label: 'Map' },
-    { href: isLanding ? '#trace' : '/#trace', label: 'Agent Trace' },
-    { href: isLanding ? '#admin' : '/#admin', label: 'Admin' },
-    { href: isLanding ? '#board' : '/#board', label: 'Leaderboard' },
+    { href: isLanding ? '#features' : '/#features', label: 'Features' },
+    { href: isLanding ? '#how' : '/#how', label: 'How it works' },
+    { href: isLanding ? '#community' : '/#community', label: 'Community' },
   ];
 
   return (
-    <nav className="bp-grid" style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: 'clamp(16px,3vw,20px) clamp(20px,5vw,64px)',
-      color: 'var(--paper)', position: 'relative', zIndex: 5,
-      borderBottom: '1px solid var(--grid)',
-    }}>
-      {/* Brand */}
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-        <div style={{ width: 28, height: 28, flexShrink: 0 }}>
-          <svg viewBox="0 0 30 30" fill="none" width="28" height="28">
-            <circle cx="15" cy="15" r="13" stroke="var(--hazard)" strokeWidth="2"/>
-            <circle cx="15" cy="15" r="3.2" fill="var(--hazard)"/>
-            <path d="M15 2 L15 8 M15 22 L15 28 M2 15 L8 15 M22 15 L28 15" stroke="var(--hazard)" strokeWidth="1.6"/>
-          </svg>
-        </div>
-        <span style={{
-          fontFamily: "'Big Shoulders Display', sans-serif",
-          fontWeight: 900, fontSize: '1.35rem',
-          textTransform: 'uppercase', letterSpacing: '0.04em', color: 'white',
-        }}>
-          Civic<span style={{ color: 'var(--hazard)' }}>Pulse</span>
-        </span>
-      </Link>
-
-      {/* Links */}
-      <ul style={{
-        display: 'flex', gap: 'clamp(14px,3vw,32px)', listStyle: 'none',
-        margin: 0, padding: 0, fontSize: '0.875rem',
-      }} className="landing-nav-links">
-        {navItems.map(({ href, label }) => (
-          <li key={href}>
+    <header className="sticky top-0 z-50 glass border-b border-line" style={{ borderColor: 'var(--nav-glass-border)' }}>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+        <Logo />
+        <nav className="hidden md:flex items-center gap-1" aria-label="Landing">
+          {navItems.map((item) => (
             <a
-              href={href}
-              style={{ color: 'rgba(238,241,236,0.75)', textDecoration: 'none', transition: 'color .15s', fontWeight: 500 }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.75)')}
+              key={item.href}
+              href={item.href}
+              className="px-3.5 py-2 rounded-xl text-sm font-semibold text-muted hover:text-ink hover:bg-subtle transition-colors"
             >
-              {label}
+              {item.label}
             </a>
-          </li>
-        ))}
-      </ul>
-
-      {/* CTA */}
-      <Link to="/report" className="btn-primary" style={{ padding: '9px 18px', fontSize: '0.875rem' }}>
-        Report Issue
-      </Link>
-    </nav>
+          ))}
+        </nav>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {user ? (
+            <Button to="/home" variant="secondary" size="sm">
+              <LayoutDashboard className="w-4 h-4" /> Dashboard
+            </Button>
+          ) : (
+            <Link
+              to="/login"
+              className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-xl text-sm font-semibold text-ink hover:bg-subtle transition-colors"
+            >
+              Sign in
+            </Link>
+          )}
+          <Button to="/report" size="sm">
+            Report Issue
+          </Button>
+        </div>
+      </div>
+    </header>
   );
 }

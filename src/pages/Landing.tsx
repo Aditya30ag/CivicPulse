@@ -1,950 +1,700 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
-import LandingNavbar from '../components/LandingNavbar';
+import {
+  ArrowRight,
+  Camera,
+  Bot,
+  GitMerge,
+  MapPin,
+  ShieldCheck,
+  TrendingUp,
+  Users,
+  Building2,
+  Zap,
+  Star,
+  ChevronRight,
+  Activity,
+  Bell,
+  CheckCircle2,
+  Cpu,
+  LineChart,
+  Sparkles,
+  LayoutDashboard,
+} from 'lucide-react';
+import Logo from '../components/ui/Logo';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import { useAuth } from '../contexts/AuthContext';
 
-/* ── Ticker data (duplicated for seamless loop) ─────────────────────── */
-const TICKER_ENTRIES = [
-  { cls: '',     text: '14:02:11', agent: 'PERCEPTION_AGENT',  rest: 'category=pothole severity=7 conf=0.94' },
-  { cls: '',     text: '14:02:13', agent: 'DEDUP_AGENT',       rest: 'radius=100m nearby_reports=2 match=false' },
-  { cls: 'ok',   text: '14:02:14', agent: 'ORCHESTRATOR',      rest: 'report created → id CP-10234, ward 07' },
-  { cls: 'crit', text: '14:04:02', agent: 'PERCEPTION_AGENT',  rest: 'category=water_leak severity=9 conf=0.88' },
-  { cls: '',     text: '14:04:05', agent: 'DEDUP_AGENT',       rest: 'match=true similarity=0.91 → escalating existing report' },
-  { cls: '',     text: '14:04:06', agent: 'SEVERITY_AGENT',    rest: 'escalated CP-10198 4 → 9' },
-  { cls: '',     text: '14:07:40', agent: 'PERCEPTION_AGENT',  rest: 'category=garbage severity=4 conf=0.97' },
-  { cls: 'ok',   text: '14:07:41', agent: 'ORCHESTRATOR',      rest: 'report created → id CP-10235, ward 03' },
-];
+/* ── Animated counter ─────────────────────────────────────────────────── */
+function Counter({ to, suffix = '', duration = 1800 }: { to: number; suffix?: string; duration?: number }) {
+  const [value, setValue] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const started = useRef(false);
 
-/* ── Static demo reports for landing preview ─────────────────────────── */
-const DEMO_REPORTS = [
-  {
-    sev: 9, tier: 'high',
-    title: 'Water main leak, MG Road', id: 'CP-10198',
-    desc: 'Escalated after a second photo showed the flooded stretch spreading toward the crossing.',
-    chips: [{ label: 'Open', cls: 'open' }, { label: 'Water Leak' }, { label: 'Ward 07' }],
-  },
-  {
-    sev: 6, tier: 'mid',
-    title: 'Deep pothole near bus stop', id: 'CP-10234',
-    desc: 'Wide enough to cross both lanes; two-wheelers swerving into oncoming traffic.',
-    chips: [{ label: 'Open', cls: 'open' }, { label: 'Pothole' }, { label: 'Ward 07' }],
-  },
-  {
-    sev: 3, tier: 'low',
-    title: 'Overflowing bin, Sector 12 market', id: 'CP-10235',
-    desc: 'Confirmed by two nearby residents this morning.',
-    chips: [{ label: 'Verified ×2', cls: 'verified' }, { label: 'Garbage' }, { label: 'Ward 03' }],
-  },
-];
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          const start = performance.now();
+          const tick = (now: number) => {
+            const p = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - p, 3);
+            setValue(Math.round(to * eased));
+            if (p < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.4 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [to, duration]);
 
-const TRACE_ROWS = [
-  { agent: 'PERCEPTION', text: <>Read the second uploaded photo as <b style={{ color: '#fff', fontWeight: 500 }}>water_leak</b>, raised confidence to <b style={{ color: '#fff', fontWeight: 500 }}>0.88</b> — visible flow had roughly doubled in width against the first report.</> },
-  { agent: 'DEDUPLICATION', text: <>Queried a <b style={{ color: '#fff', fontWeight: 500 }}>100m geohash radius</b> around the pin, found one open report 40m away, scored semantic similarity at <b style={{ color: '#fff', fontWeight: 500 }}>0.91</b> — treated as the same leak.</> },
-  { agent: 'SEVERITY', text: <>Escalated the existing report from <b style={{ color: '#fff', fontWeight: 500 }}>4 → 9</b> and flagged it for immediate dispatch rather than the standard queue.</> },
-  { agent: 'ORCHESTRATOR', text: <>Merged both photos under <b style={{ color: '#fff', fontWeight: 500 }}>CP-10198</b>, notified Ward 07 admin, left the original reporter's credit intact.</> },
-];
-
-const WARD_CARDS = [
-  {
-    name: 'Ward 07 — Lakeview', code: 'WD-07', risk: 'HIGH RISK', riskCls: 'high',
-    sparkPoints: '0,34 30,30 60,28 90,20 120,16 150,8 200,4',
-    sparkColor: 'var(--signal)',
-    trend: <>Waterlogging complaints <b>+40%</b> expected</>,
-  },
-  {
-    name: 'Ward 03 — Old Market', code: 'WD-03', risk: 'MODERATE', riskCls: 'mid',
-    sparkPoints: '0,18 30,22 60,16 90,24 120,20 150,26 200,22',
-    sparkColor: 'var(--hazard)',
-    trend: <>Garbage accumulation roughly <b>flat</b></>,
-  },
-  {
-    name: 'Ward 12 — Riverside', code: 'WD-12', risk: 'MODERATE', riskCls: 'mid',
-    sparkPoints: '0,10 30,14 60,20 90,18 120,26 150,30 200,34',
-    sparkColor: 'var(--verified)',
-    trend: <>Pothole reports trending <b>down 18%</b></>,
-  },
-];
-
-const LEADERS = [
-  { rank: '01', name: 'Ananya R.', sub: '42 reports · 18 verifications', pts: '2,140 pts', isFirst: true },
-  { rank: '02', name: 'Rohit K.',  sub: '31 reports · 25 verifications', pts: '1,865 pts', isFirst: false },
-  { rank: '03', name: 'Priya S.', sub: '28 reports · 14 verifications', pts: '1,502 pts', isFirst: false },
-];
-
-/* ── Severity helpers ────────────────────────────────────────────────── */
-const sevColor = (tier: string) =>
-  tier === 'high' ? 'var(--signal)' : tier === 'mid' ? 'var(--hazard)' : 'var(--verified)';
-
-export default function Landing() {
   return (
-    <div style={{ background: 'var(--paper)', color: 'var(--ink)', fontFamily: "'IBM Plex Sans', sans-serif" }}>
+    <span ref={ref} className="tabular-nums">
+      {value.toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
 
-      {/* ═══════════════════════════════════════════════════════════════
-          HERO — Blueprint grid dark surface
-      ═══════════════════════════════════════════════════════════════ */}
-      <div className="bp-grid" style={{ position: 'relative' }}>
+/* ── Animated city map (hero art) ─────────────────────────────────────── */
+const DEMO_PINS = [
+  { x: 132, y: 96, tone: 'danger', label: 'Water main leak', sev: 9 },
+  { x: 252, y: 150, tone: 'warning', label: 'Pothole, MG Road', sev: 6 },
+  { x: 92, y: 208, tone: 'success', label: 'Bin cleared', sev: 0 },
+  { x: 310, y: 84, tone: 'warning', label: 'Streetlight out', sev: 5 },
+  { x: 300, y: 226, tone: 'success', label: 'Cable restored', sev: 0 },
+];
 
-        <LandingNavbar />
+const PIN_COLORS: Record<string, string> = {
+  danger: '#ef4444',
+  warning: '#f59e0b',
+  success: '#10b981',
+};
 
-        {/* HERO BODY — two-column */}
-        <div style={{
-          padding: 'clamp(44px,7vw,90px) clamp(20px,5vw,64px) clamp(60px,9vw,110px)',
-          color: 'var(--paper)', position: 'relative', zIndex: 2,
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-          gap: 'clamp(28px,4vw,56px)',
-          alignItems: 'center',
-        }} className="hero-grid">
-          <style>{`
-            @media (max-width: 800px) {
-              .hero-grid { grid-template-columns: 1fr !important; }
-              .hero-terminal-col { display: none; }
-            }
-          `}</style>
-          {/* ── LEFT: text copy ── */}
-          <div>
-            {/* Coordinate readout */}
-            <div style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: '0.75rem', letterSpacing: '0.08em', color: 'var(--hazard)',
-              display: 'flex', gap: '18px', flexWrap: 'wrap', marginBottom: '22px',
-            }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                <span style={{
-                  display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
-                  background: 'var(--hazard)',
-                  animation: 'ring-pulse 1.6s infinite',
-                }} />
-                LIVE FEED — WARD 07
-              </span>
-              <span style={{ opacity: 0.85 }}>28.6139° N, 77.2090° E</span>
-              <span style={{ opacity: 0.85 }}>GEOHASH ttnfv2s</span>
-            </div>
+function CityMapArt() {
+  return (
+    <div className="relative">
+      {/* Glow behind the map */}
+      <div className="absolute -inset-8 bg-gradient-to-tr from-primary/20 via-transparent to-teal-brand/20 blur-3xl rounded-full" aria-hidden="true" />
 
-            <h1 style={{
-              fontFamily: "'Big Shoulders Display', sans-serif",
-              fontWeight: 900, textTransform: 'uppercase',
-              fontSize: 'clamp(2.6rem,6vw,5rem)',
-              lineHeight: 0.92, margin: '0 0 26px', maxWidth: '14ch',
-              color: 'white',
-            }}>
-              Every crack,<br />
-              <span style={{ color: 'var(--hazard)' }}>traced</span> back<br />
-              to a fix.
-            </h1>
-
-            <p style={{
-              maxWidth: '44ch', fontSize: '1rem', lineHeight: 1.65,
-              color: 'rgba(238,241,236,0.72)', marginBottom: '34px',
-              fontFamily: "'IBM Plex Sans', sans-serif",
-            }}>
-              Snap a photo. A perception agent reads the damage, a deduplication agent checks the block, and an orchestrator routes it to the ward that owns it — every decision logged and visible.
-            </p>
-
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-              <Link to="/report" className="btn-primary" style={{ fontSize: '0.95rem', padding: '13px 26px' }}>
-                Report an issue →
-              </Link>
-              <Link to="/home" className="btn-secondary" style={{
-                fontSize: '0.95rem', padding: '13px 26px',
-                color: 'var(--paper)', borderColor: 'var(--grid)',
-              }}>
-                View the live map
-              </Link>
-            </div>
+      <div className="relative rounded-3xl border border-line bg-card shadow-pop overflow-hidden">
+        {/* Map header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-line bg-card/80">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
+            <span className="text-xs font-semibold text-ink">Live — Ward 07</span>
           </div>
-
-          {/* ── RIGHT: Civic Intelligence Terminal ── */}
-          <div className="hero-terminal-col">
-            <HeroTerminal />
+          <div className="flex items-center gap-2 text-[10px] font-mono text-faint">
+            <span>28.61° N</span>
+            <span>77.20° E</span>
           </div>
         </div>
 
-        {/* AGENT LOG TICKER */}
-        <div style={{
-          background: '#0F1D2C',
-          borderTop: '1px solid var(--grid)',
-          borderBottom: '1px solid var(--grid)',
-          overflow: 'hidden', position: 'relative', zIndex: 2,
-        }}>
-          {/* "AGENT LOG" label */}
-          <div style={{
-            position: 'absolute', left: 0, top: 0, bottom: 0,
-            display: 'flex', alignItems: 'center', gap: '7px',
-            padding: '0 16px',
-            background: '#0F1D2C',
-            borderRight: '1px solid var(--grid)',
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: '0.68rem', letterSpacing: '0.12em', color: 'var(--hazard)',
-            zIndex: 2,
-            whiteSpace: 'nowrap',
-          }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%', background: 'var(--hazard)',
-              animation: 'ring-pulse 1.6s infinite',
-              display: 'inline-block',
-            }} />
-            AGENT LOG
-          </div>
+        {/* Map body */}
+        <svg viewBox="0 0 400 280" className="w-full h-auto block" role="img" aria-label="Animated map of reported civic issues">
+          <defs>
+            <linearGradient id="mapbg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="var(--bg-subtle)" />
+              <stop offset="100%" stopColor="var(--bg-page)" />
+            </linearGradient>
+          </defs>
+          <rect width="400" height="280" fill="url(#mapbg)" />
 
-          {/* Scrolling track — duplicated for seamless loop */}
-          <div style={{
-            display: 'flex', whiteSpace: 'nowrap',
-            animation: 'ticker-scroll 34s linear infinite',
-            paddingLeft: '170px',
-          }}>
-            {[...TICKER_ENTRIES, ...TICKER_ENTRIES].map((e, i) => {
-              const agentColor = e.cls === 'ok' ? 'var(--verified)' : e.cls === 'crit' ? 'var(--signal)' : 'var(--hazard)';
-              return (
-                <span
-                  key={i}
-                  style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: '0.75rem',
-                    color: 'rgba(238,241,236,0.65)',
-                    padding: '11px 28px 11px 0',
-                    borderRight: '1px solid var(--grid)',
-                    marginRight: '28px',
-                    display: 'inline-flex', alignItems: 'center', gap: '5px',
-                  }}
-                >
-                  {e.text}&nbsp;
-                  <b style={{ color: agentColor, fontWeight: 500 }}>{e.agent}</b>
-                  &nbsp;{e.rest}
-                </span>
-              );
-            })}
+          {/* Block grid */}
+          {Array.from({ length: 9 }).map((_, i) => (
+            <line key={`h${i}`} x1="0" y1={i * 32} x2="400" y2={i * 32} stroke="var(--line)" strokeWidth="1" opacity="0.5" />
+          ))}
+          {Array.from({ length: 13 }).map((_, i) => (
+            <line key={`v${i}`} x1={i * 32} y1="0" x2={i * 32} y2="280" stroke="var(--line)" strokeWidth="1" opacity="0.5" />
+          ))}
+
+          {/* Roads */}
+          <path d="M0 120 Q 120 90 240 130 T 400 108" stroke="var(--line-strong)" strokeWidth="8" fill="none" opacity="0.55" />
+          <path d="M96 0 Q 128 140 96 280" stroke="var(--line-strong)" strokeWidth="8" fill="none" opacity="0.55" />
+          <path d="M0 214 Q 200 190 400 232" stroke="var(--line-strong)" strokeWidth="6" fill="none" opacity="0.4" />
+          <path d="M268 0 Q 240 140 268 280" stroke="var(--line-strong)" strokeWidth="6" fill="none" opacity="0.4" />
+
+          {/* Park areas */}
+          <rect x="24" y="24" width="56" height="48" rx="8" fill="var(--success)" opacity="0.12" />
+          <rect x="320" y="192" width="56" height="60" rx="8" fill="var(--teal-brand)" opacity="0.12" />
+
+          {/* Pins */}
+          {DEMO_PINS.map((pin, i) => {
+            const color = PIN_COLORS[pin.tone];
+            const pulse = pin.tone === 'danger';
+            return (
+              <g key={i}>
+                {pulse && (
+                  <circle cx={pin.x} cy={pin.y} r="14" fill="none" stroke={color} strokeWidth="1.5" opacity="0.5">
+                    <animate attributeName="r" values="10;22;10" dur="2.2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.6;0;0.6" dur="2.2s" repeatCount="indefinite" />
+                  </circle>
+                )}
+                <circle cx={pin.x} cy={pin.y} r="7.5" fill={color} stroke="#fff" strokeWidth="2" />
+                <circle cx={pin.x} cy={pin.y} r="2.5" fill="#fff" opacity="0.85" />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Legend */}
+        <div className="absolute bottom-3 left-3 glass rounded-full px-3.5 py-1.5 flex items-center gap-3 text-[10px] font-semibold text-ink">
+          {[
+            ['#ef4444', 'Critical'],
+            ['#f59e0b', 'Pending'],
+            ['#10b981', 'Resolved'],
+          ].map(([c, l]) => (
+            <span key={l} className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: c }} />
+              {l}
+            </span>
+          ))}
+        </div>
+
+        {/* Floating live-feed card */}
+        <div className="absolute top-16 -right-3 sm:right-4 glass rounded-2xl shadow-pop p-3.5 w-52 animate-float hidden sm:block">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-7 h-7 rounded-lg bg-danger-soft text-danger flex items-center justify-center">
+              <Zap className="w-3.5 h-3.5" />
+            </span>
+            <div>
+              <p className="text-[11px] font-bold text-ink leading-none">Water main leak</p>
+              <p className="text-[10px] text-faint mt-0.5">MG Road · 2 min ago</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-danger uppercase tracking-wide">Severity 9</span>
+            <span className="text-[10px] text-primary font-semibold">AI routed →</span>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* ═══════════════════════════════════════════════════════════════
-          MAP + FEED SECTION
-      ═══════════════════════════════════════════════════════════════ */}
-      <section id="map" style={{
-        padding: 'clamp(50px,7vw,90px) clamp(20px,5vw,64px)',
-      }}>
-        <LandingEyebrow>Citizen view</LandingEyebrow>
-        <h2 style={{ ...displayStyle, fontSize: 'clamp(1.8rem,3.6vw,2.6rem)', margin: '0 0 10px' }}>
-          The map is the source of truth.
-        </h2>
-        <p style={{ maxWidth: '56ch', color: 'rgba(22,40,61,0.65)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '36px' }}>
-          Pins are colored by severity, not by who reported them first. Overlapping reports within 100m are merged automatically, so the map stays a clean picture of what's actually broken.
-        </p>
+/* ── Section helpers ──────────────────────────────────────────────────── */
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  align = 'center',
+}: {
+  eyebrow: string;
+  title: React.ReactNode;
+  description?: string;
+  align?: 'center' | 'left';
+}) {
+  return (
+    <div className={`max-w-2xl ${align === 'center' ? 'mx-auto text-center' : ''} mb-12`}>
+      <Badge tone="primary" className="mb-4">
+        {eyebrow}
+      </Badge>
+      <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink leading-tight">{title}</h2>
+      {description && <p className="mt-4 text-base text-muted leading-relaxed">{description}</p>}
+    </div>
+  );
+}
 
-        {/* Split grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))',
-          gap: '28px',
-          alignItems: 'start',
-        }}>
-          {/* Mock map */}
-          <div style={{
-            background: 'var(--ink)', borderRadius: '4px',
-            aspectRatio: '4 / 3.4', position: 'relative', overflow: 'hidden',
-            border: '1px solid var(--grid)',
-          }}>
-            <svg viewBox="0 0 400 340" style={{ width: '100%', height: '100%', display: 'block' }}>
-              {/* Grid lines */}
-              {[60,140,220].map(y => <line key={y} x1="0" y1={y} x2="400" y2={y} stroke="#2E4A66" strokeWidth="1"/>)}
-              {[90,230,320].map(x => <line key={x} x1={x} y1="0" x2={x} y2="340" stroke="#2E4A66" strokeWidth="1"/>)}
-              {/* Roads */}
-              <path d="M0 190 Q 140 120 260 170 T 400 150" stroke="#3B5772" strokeWidth="6" fill="none" opacity="0.6"/>
-              <path d="M60 0 Q 100 150 80 340" stroke="#3B5772" strokeWidth="6" fill="none" opacity="0.6"/>
-              {/* Critical pins with pulse ring */}
-              <circle cx="150" cy="130" r="16" fill="none" stroke="#D6483D" strokeWidth="1.5" opacity="0.45"/>
-              <circle cx="150" cy="130" r="9" fill="#D6483D"/>
-              <circle cx="190" cy="270" r="16" fill="none" stroke="#D6483D" strokeWidth="1.5" opacity="0.45"/>
-              <circle cx="190" cy="270" r="9" fill="#D6483D"/>
-              {/* Moderate pins */}
-              <circle cx="240" cy="200" r="7" fill="#F2B705"/>
-              <circle cx="90" cy="230" r="7" fill="#F2B705"/>
-              <circle cx="60" cy="80" r="7" fill="#F2B705"/>
-              {/* Resolved pins */}
-              <circle cx="300" cy="90" r="6" fill="#4C8F68"/>
-              <circle cx="330" cy="250" r="6" fill="#4C8F68"/>
-            </svg>
-            {/* Legend */}
-            <div style={{
-              position: 'absolute', bottom: 14, left: 14,
-              background: 'rgba(15,29,44,0.88)',
-              border: '1px solid var(--grid)',
-              padding: '9px 14px', borderRadius: '3px',
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: '0.7rem', color: 'rgba(238,241,236,0.7)',
-              display: 'flex', gap: '14px',
-            }}>
-              {[['#D6483D','Critical'],['#F2B705','Moderate'],['#4C8F68','Resolved']].map(([c,l]) => (
-                <span key={l} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: c, display: 'inline-block' }} />
-                  {l}
-                </span>
+const FEATURES = [
+  {
+    icon: Camera,
+    title: 'AI-powered reporting',
+    desc: 'Snap a photo and our perception model classifies the issue, scores its severity, and drafts the report for you in seconds.',
+    tone: 'text-primary bg-primary-soft',
+  },
+  {
+    icon: GitMerge,
+    title: 'Smart duplicate detection',
+    desc: 'Overlapping reports within 100m are merged automatically, so the map stays clean and crews are never double-dispatched.',
+    tone: 'text-teal-brand bg-teal-soft',
+  },
+  {
+    icon: Cpu,
+    title: 'Transparent AI trace',
+    desc: 'Every decision — perception, deduplication, severity, routing — is logged and visible to citizens and admins alike.',
+    tone: 'text-warning bg-warning-soft',
+  },
+  {
+    icon: MapPin,
+    title: 'Real-time city map',
+    desc: 'Pins colored by status: critical in red, pending in orange, resolved in green. Filter by category and severity.',
+    tone: 'text-danger bg-danger-soft',
+  },
+  {
+    icon: LineChart,
+    title: 'Predictive insights',
+    desc: 'Admins see 14-day ward forecasts and heatmaps, so crews are routed before complaints pile up, not after.',
+    tone: 'text-info bg-info-soft',
+  },
+  {
+    icon: Users,
+    title: 'Community verification',
+    desc: 'Neighbours confirm issues to build trust scores and keep every report grounded in the community’s lived reality.',
+    tone: 'text-success bg-success-soft',
+  },
+];
+
+const STEPS = [
+  {
+    icon: Camera,
+    step: '01',
+    title: 'Report in seconds',
+    desc: 'Choose a category, snap a photo, drop a pin on the map. AI suggests the details for you.',
+  },
+  {
+    icon: Bot,
+    step: '02',
+    title: 'AI routes & dedupes',
+    desc: 'Agents analyse the image, check for duplicates nearby, and route the issue to the right department.',
+  },
+  {
+    icon: Activity,
+    step: '03',
+    title: 'Track to resolution',
+    desc: 'Follow the progress timeline, get notified on updates, and see it resolved on the live map.',
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    quote:
+      'I reported a pothole at 7am and it was patched by Friday. I could watch every step — verification, department assignment, work order — on the timeline.',
+    name: 'Ananya Rao',
+    role: 'Resident, Lakeview Ward',
+    initials: 'AR',
+  },
+  {
+    quote:
+      'The heatmap and ward forecasts changed how we plan. We now route crews by predicted risk instead of reacting to the loudest complaint.',
+    name: 'Rohit Khanna',
+    role: 'Municipal Officer, Ward 07',
+    initials: 'RK',
+  },
+  {
+    quote:
+      'Duplicates just disappeared. Same stretch of road was reported 5 times a month before; now it merges into one ticket with one fix.',
+    name: 'Priya Srinivasan',
+    role: 'Operations Lead, City Ops',
+    initials: 'PS',
+  },
+];
+
+const FOOTER_COLS = [
+  {
+    title: 'Platform',
+    links: [
+      { label: 'Live City Map', to: '/home' },
+      { label: 'Report an Issue', to: '/report' },
+      { label: 'Leaderboard', to: '/leaderboard' },
+      { label: 'Admin Dashboard', to: '/admin' },
+    ],
+  },
+  {
+    title: 'Resources',
+    links: [
+      { label: 'Help & FAQ', to: '/faq' },
+      { label: 'Terms of Service', to: '/terms' },
+      { label: 'Privacy Policy', to: '/privacy' },
+    ],
+  },
+];
+
+export default function Landing() {
+  const { user } = useAuth();
+
+  return (
+    <div className="min-h-screen bg-page text-ink font-sans">
+      {/* ── Navbar ── */}
+      <header className="sticky top-0 z-50 glass border-b border-line" style={{ borderColor: 'var(--nav-glass-border)' }}>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+          <Logo />
+          <nav className="hidden md:flex items-center gap-1" aria-label="Landing">
+            {[
+              { label: 'Features', href: '#features' },
+              { label: 'How it works', href: '#how' },
+              { label: 'Live Map', href: '#map' },
+              { label: 'Community', href: '#community' },
+            ].map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                className="px-3.5 py-2 rounded-xl text-sm font-semibold text-muted hover:text-ink hover:bg-subtle transition-colors"
+              >
+                {l.label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <Button to="/home" variant="secondary" size="sm">
+                <LayoutDashboard className="w-4 h-4" /> Dashboard
+              </Button>
+            ) : (
+              <Link
+                to="/login"
+                className="hidden sm:inline-flex items-center justify-center h-10 px-4 rounded-xl text-sm font-semibold text-ink hover:bg-subtle transition-colors"
+              >
+                Sign in
+              </Link>
+            )}
+            <Button to="/report" size="sm">
+              Report an Issue
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Hero ── */}
+      <section className="gradient-hero relative overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28 grid lg:grid-cols-2 gap-14 lg:gap-10 items-center">
+          <div className="relative z-10">
+            <Badge tone="success" className="mb-5">
+              <Sparkles className="w-3.5 h-3.5" />
+              Smart city civic platform
+            </Badge>
+            <h1 className="text-[2.6rem] leading-[1.04] sm:text-6xl lg:text-[4.2rem] font-extrabold tracking-tight text-ink">
+              Your Voice.
+              <br />
+              Your City.
+              <br />
+              <span className="text-gradient">Your Impact.</span>
+            </h1>
+            <p className="mt-6 text-lg text-muted leading-relaxed max-w-xl">
+              Snap a photo of any civic issue — roads, garbage, water, power, safety. Our AI agents classify it, check for
+              duplicates, and route it straight to the department that owns it. Transparent, trackable, resolved.
+            </p>
+
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <Button to="/report" size="lg">
+                Report an Issue
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+              <Button to="/home" variant="secondary" size="lg">
+                <MapPin className="w-4 h-4 text-primary" />
+                Explore City
+              </Button>
+            </div>
+
+            {/* Trust stats */}
+            <div className="mt-10 grid grid-cols-3 gap-6 max-w-md">
+              {[
+                { v: 12480, s: '+', label: 'Issues resolved' },
+                { v: 38, s: '', label: 'City wards' },
+                { v: 96, s: '%', label: 'Response rate' },
+              ].map((s) => (
+                <div key={s.label}>
+                  <p className="text-2xl sm:text-3xl font-extrabold text-ink">
+                    <Counter to={s.v} suffix={s.s} />
+                  </p>
+                  <p className="text-xs text-faint font-medium mt-1">{s.label}</p>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Report cards feed */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {DEMO_REPORTS.map((r) => (
-              <div key={r.id} className="asset-tag" style={{ boxShadow: '0 1px 3px rgba(22,40,61,0.06)' }}>
-                {/* Severity stub */}
-                <div className="asset-tag__stub">
-                  <span className="asset-tag__score" style={{ color: sevColor(r.tier) }}>{r.sev}</span>
-                  <span style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.07em',
-                    color: 'rgba(22,40,61,0.45)', marginTop: 2,
-                  }}>Severity</span>
-                </div>
+          <div className="relative z-10">
+            <CityMapArt />
+          </div>
+        </div>
 
-                {/* Body */}
-                <div className="asset-tag__body">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--ink)' }}>{r.title}</span>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.7rem', color: 'rgba(22,40,61,0.45)' }}>{r.id}</span>
-                  </div>
-                  <p style={{ fontSize: '0.85rem', color: 'rgba(22,40,61,0.65)', margin: '4px 0 10px', lineHeight: 1.5 }}>{r.desc}</p>
-                  <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap' }}>
-                    {r.chips.map((c) => (
-                      <span
-                        key={c.label}
-                        className={`status-chip${c.cls === 'open' ? ' status-chip--open' : c.cls === 'verified' ? ' status-chip--verified' : ''}`}
-                        style={!c.cls ? {
-                          background: 'var(--paper)', color: 'rgba(22,40,61,0.65)',
-                          border: '1px solid var(--paper-dim)', borderRadius: '20px',
-                          fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.68rem',
-                          padding: '3px 9px',
-                        } : {}}
-                      >
-                        {c.label}
-                      </span>
-                    ))}
-                  </div>
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-page to-transparent pointer-events-none" />
+      </section>
+
+      {/* ── Marquee ticker ── */}
+      <div className="border-y border-line bg-card/60 overflow-hidden py-3">
+        <div className="flex whitespace-nowrap ticker-scroll gap-0" style={{ width: 'max-content' }}>
+          {[0, 1].map((dup) => (
+            <div key={dup} className="flex items-center">
+              {[
+                'Perception agent classified 3 new reports',
+                'Duplicate merged within 100m radius',
+                'Severity escalated · water leak 4 → 9',
+                'Report routed to Water & Sewerage Board',
+                'Ward 07 forecast updated · +40% waterlogging',
+                '3 neighbours verified the pothole report',
+              ].map((text, i) => (
+                <span key={i} className="flex items-center gap-2 px-8 text-xs font-semibold text-muted">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                  {text}
+                  <span className="ml-8 w-1 h-1 rounded-full bg-line-strong" />
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── How it works ── */}
+      <section id="how" className="py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="How it works"
+            title={
+              <>
+                From complaint to fix, <span className="text-gradient">in three steps</span>
+              </>
+            }
+            description="CivicPulse puts an autonomous AI pipeline between citizens and city administration — every step logged and visible."
+          />
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {STEPS.map((step, i) => (
+              <div
+                key={step.step}
+                className="relative bg-card border border-line rounded-3xl shadow-card p-7 hover:shadow-pop hover:-translate-y-1 transition-all duration-200"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <span className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-teal-brand text-white flex items-center justify-center shadow-[0_8px_20px_-8px_rgba(37,99,235,0.6)]">
+                    <step.icon className="w-5 h-5" />
+                  </span>
+                  <span className="text-5xl font-extrabold text-subtle -mt-2 select-none">{step.step}</span>
                 </div>
+                <h3 className="text-lg font-bold text-ink mb-2">{step.title}</h3>
+                <p className="text-sm text-muted leading-relaxed">{step.desc}</p>
+                {i < STEPS.length - 1 && (
+                  <ChevronRight className="hidden md:block absolute top-1/2 -right-5 w-5 h-5 text-faint -translate-y-1/2 z-10" />
+                )}
               </div>
             ))}
           </div>
         </div>
+      </section>
 
-        {/* ── Agent trace panel ────────────────────────────────────── */}
-        <div id="trace" style={{
-          background: 'var(--ink)', borderRadius: '4px',
-          padding: 'clamp(22px,4vw,32px)',
-          color: 'var(--paper)', marginTop: '44px',
-          border: '1px solid var(--grid)',
-        }}>
-          <div style={{ ...monoStyle, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--hazard)', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <span style={{ color: 'var(--hazard)', fontSize: '0.55rem' }}>◆</span>
-            Traceability · CP-10198
+      {/* ── Features ── */}
+      <section id="features" className="py-20 lg:py-28 bg-card/50 border-y border-line">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="Key features"
+            title={
+              <>
+                Built like a <span className="text-gradient">smart city</span> deserves
+              </>
+            }
+            description="A civic operating system — not just a complaint box. Everything from perception to predictive dispatch."
+          />
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="group bg-card border border-line rounded-3xl shadow-card p-7 hover:shadow-pop hover:-translate-y-1 transition-all duration-200"
+              >
+                <span className={`w-12 h-12 rounded-2xl flex items-center justify-center ${f.tone} mb-5 group-hover:scale-110 transition-transform duration-200`}>
+                  <f.icon className="w-5 h-5" />
+                </span>
+                <h3 className="text-base font-bold text-ink mb-2">{f.title}</h3>
+                <p className="text-sm text-muted leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
           </div>
-          {TRACE_ROWS.map((row) => (
-            <div
-              key={row.agent}
-              style={{
-                display: 'grid', gridTemplateColumns: '130px 1fr',
-                gap: '16px', padding: '12px 0',
-                borderBottom: '1px solid var(--grid)',
-                fontSize: '0.82rem',
-              }}
-            >
-              <div style={{ fontFamily: "'IBM Plex Mono', monospace", color: 'var(--hazard)', fontSize: '0.7rem', letterSpacing: '0.04em', paddingTop: '2px' }}>
-                {row.agent}
-              </div>
-              <div style={{ color: 'rgba(238,241,236,0.72)', lineHeight: 1.55 }}>
-                {row.text}
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          ADMIN / FORECAST — Blueprint grid dark
-      ═══════════════════════════════════════════════════════════════ */}
-      <section
-        id="admin"
-        className="bp-grid"
-        style={{
-          padding: 'clamp(50px,7vw,90px) clamp(20px,5vw,64px)',
-          color: 'var(--paper)',
-        }}
-      >
-        <LandingEyebrow dark>Admin view</LandingEyebrow>
-        <h2 style={{ ...displayStyle, fontSize: 'clamp(1.8rem,3.6vw,2.6rem)', margin: '0 0 10px', color: 'white' }}>
-          See the next 14 days, not just today.
-        </h2>
-        <p style={{ maxWidth: '56ch', fontSize: '1rem', lineHeight: 1.6, color: 'rgba(238,241,236,0.68)', marginBottom: '36px' }}>
-          Forecasts are read off recent reporting patterns per ward — a way to route crews before the complaints pile up, not after.
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))', gap: '18px' }}>
-          {WARD_CARDS.map((w) => (
-            <div
-              key={w.code}
-              style={{
-                background: '#fff', border: '1px solid var(--paper-dim)',
-                borderRadius: '3px', padding: '20px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{w.name}</div>
-                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.62rem', color: 'rgba(22,40,61,0.45)' }}>{w.code}</div>
+      {/* ── Live map section ── */}
+      <section id="map" className="py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-14 items-center">
+          <div>
+            <SectionHeading
+              align="left"
+              eyebrow="Live city map"
+              title={
+                <>
+                  The map is the <span className="text-gradient">source of truth</span>
+                </>
+              }
+              description="Pins are coloured by status — red for critical, orange for pending, green for resolved. Overlapping reports within 100m merge automatically, so the map always shows what's actually broken."
+            />
+            <div className="flex flex-col gap-3">
+              {[
+                { icon: ShieldCheck, text: 'Filter by category, severity, and ward' },
+                { icon: Building2, text: 'Heatmap view shows problem clusters at a glance' },
+                { icon: Bell, text: 'Follow issues and get notified when status changes' },
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-3 text-sm font-medium text-ink">
+                  <span className="w-8 h-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center shrink-0">
+                    <item.icon className="w-4 h-4" />
+                  </span>
+                  {item.text}
                 </div>
-                <span style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: '0.62rem', fontWeight: 500,
-                  padding: '3px 8px', borderRadius: '2px',
-                  ...(w.riskCls === 'high'
-                    ? { background: '#FBE4E1', color: 'var(--signal)' }
-                    : { background: '#FCEFC7', color: '#8A6400' }),
-                }}>
-                  {w.risk}
-                </span>
-              </div>
-
-              {/* SVG sparkline */}
-              <svg viewBox="0 0 200 44" style={{ width: '100%', height: 44 }} preserveAspectRatio="none">
-                <polyline points={w.sparkPoints} fill="none" stroke={w.sparkColor} strokeWidth="2.5" strokeLinejoin="round"/>
-              </svg>
-
-              <div style={{ fontSize: '0.82rem', color: 'rgba(22,40,61,0.65)', marginTop: '8px' }}>
-                {w.trend}
+              ))}
+              <div className="mt-4">
+                <Button to="/home" variant="secondary">
+                  Explore the live map
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Link to admin dashboard */}
-        <div style={{ marginTop: '32px' }}>
-          <Link to="/admin" className="btn-primary" style={{ fontSize: '0.875rem', padding: '11px 22px' }}>
-            Open Admin Dashboard →
-          </Link>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          LEADERBOARD
-      ═══════════════════════════════════════════════════════════════ */}
-      <section id="board" style={{ padding: 'clamp(50px,7vw,90px) clamp(20px,5vw,64px)' }}>
-        <LandingEyebrow>Community</LandingEyebrow>
-        <h2 style={{ ...displayStyle, fontSize: 'clamp(1.8rem,3.6vw,2.6rem)', margin: '0 0 10px' }}>
-          Leaderboard
-        </h2>
-        <p style={{ maxWidth: '56ch', fontSize: '1rem', lineHeight: 1.6, color: 'rgba(22,40,61,0.65)', marginBottom: '36px' }}>
-          Points for accurate reports and for verifying issues nearby — the map gets better because people trust each other's eyes.
-        </p>
-
-        <div style={{ maxWidth: '600px' }}>
-          {LEADERS.map((l) => (
-            <div
-              key={l.rank}
-              style={{
-                display: 'grid', gridTemplateColumns: '44px 1fr auto',
-                alignItems: 'center', gap: '14px',
-                padding: '13px 0',
-                borderBottom: '1px solid var(--paper-dim)',
-              }}
-            >
-              <div style={{
-                fontFamily: "'Big Shoulders Display', sans-serif",
-                fontWeight: 700, fontSize: '1.3rem',
-                color: l.isFirst ? 'var(--hazard)' : 'rgba(22,40,61,0.4)',
-              }}>
-                {l.rank}
-              </div>
-              <div>
-                <div style={{ fontWeight: 500, fontSize: '0.92rem', color: 'var(--ink)' }}>{l.name}</div>
-                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.7rem', color: 'rgba(22,40,61,0.45)' }}>{l.sub}</div>
-              </div>
-              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.85rem', color: 'var(--ink)', textAlign: 'right' }}>
-                {l.pts}
-              </div>
+          <div className="rounded-3xl border border-line bg-card shadow-pop overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-line">
+              <p className="text-sm font-bold text-ink">Ward overview</p>
+              <Badge tone="success" dot>
+                Live
+              </Badge>
             </div>
-          ))}
-          {/* View full leaderboard */}
-          <div style={{ marginTop: '24px' }}>
-            <Link to="/leaderboard" className="btn-secondary" style={{ fontSize: '0.875rem' }}>
-              View full leaderboard →
-            </Link>
+            <div className="p-5 grid grid-cols-2 gap-4">
+              {[
+                { icon: Zap, label: 'Open issues', value: '24', tone: 'text-danger bg-danger-soft' },
+                { icon: TrendingUp, label: 'Avg resolution', value: '2.4 days', tone: 'text-primary bg-primary-soft' },
+                { icon: Users, label: 'Active citizens', value: '1,842', tone: 'text-teal-brand bg-teal-soft' },
+                { icon: Building2, label: 'Departments', value: '6', tone: 'text-warning bg-warning-soft' },
+              ].map((s) => (
+                <div key={s.label} className="rounded-2xl border border-line bg-page p-4">
+                  <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.tone} mb-3`}>
+                    <s.icon className="w-4 h-4" />
+                  </span>
+                  <p className="text-xl font-extrabold text-ink tabular-nums">{s.value}</p>
+                  <p className="text-xs text-faint font-medium mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          FOOTER
-      ═══════════════════════════════════════════════════════════════ */}
-      <div className="bp-grid text-white">
-        <footer style={{
-          padding: 'clamp(40px,6vw,60px) clamp(20px,5vw,64px) clamp(20px,4vw,30px)',
-          color: 'rgba(238,241,236,0.65)',
-          fontSize: '0.8rem',
-          position: 'relative', zIndex: 2,
-          borderTop: '1px solid var(--grid)',
-        }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '40px',
-            marginBottom: '40px'
-          }}>
-            {/* Column 1: Brand */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <svg viewBox="0 0 30 30" fill="none" width="20" height="20">
-                  <circle cx="15" cy="15" r="13" stroke="var(--hazard)" strokeWidth="2"/>
-                  <circle cx="15" cy="15" r="3.2" fill="var(--hazard)"/>
-                  <path d="M15 2 L15 8 M15 22 L15 28 M2 15 L8 15 M22 15 L28 15" stroke="var(--hazard)" strokeWidth="1.6"/>
-                </svg>
-                <span style={{
-                  fontFamily: "'Big Shoulders Display', sans-serif",
-                  fontWeight: 900, fontSize: '1.2rem',
-                  textTransform: 'uppercase', letterSpacing: '0.04em', color: 'white',
-                }}>
-                  Civic<span style={{ color: 'var(--hazard)' }}>Pulse</span>
-                </span>
-              </div>
-              <p style={{ fontSize: '0.75rem', lineHeight: '1.5', color: 'rgba(238,241,236,0.5)', maxWidth: '250px' }}>
-                A multi-agent orchestrated infrastructure monitoring and hazard dispatch routing platform.
+      {/* ── Community / Testimonials ── */}
+      <section id="community" className="py-20 lg:py-28 bg-card/50 border-y border-line">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="Community impact"
+            title={
+              <>
+                Loved by citizens <span className="text-gradient">and city teams</span>
+              </>
+            }
+            description="Trust, transparency, and faster fixes — here's what communities say when the loop closes."
+          />
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t) => (
+              <figure key={t.name} className="bg-card border border-line rounded-3xl shadow-card p-7 flex flex-col hover:shadow-pop transition-shadow duration-200">
+                <div className="flex gap-1 mb-4 text-warning">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-current" />
+                  ))}
+                </div>
+                <blockquote className="text-sm text-ink leading-relaxed flex-1">“{t.quote}”</blockquote>
+                <figcaption className="mt-6 flex items-center gap-3 pt-5 border-t border-line">
+                  <span className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-teal-brand text-white text-sm font-bold flex items-center justify-center shrink-0">
+                    {t.initials}
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-ink">{t.name}</p>
+                    <p className="text-xs text-faint">{t.role}</p>
+                  </div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA banner ── */}
+      <section className="py-20 lg:py-24">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-[2rem] bg-night text-white px-8 py-14 sm:px-14 text-center">
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{
+                background:
+                  'radial-gradient(50% 80% at 20% 0%, rgba(59,130,246,0.5) 0%, transparent 60%), radial-gradient(50% 80% at 85% 100%, rgba(45,212,191,0.4) 0%, transparent 60%)',
+              }}
+              aria-hidden="true"
+            />
+            <div className="relative z-10">
+              <Badge tone="primary" className="mb-5 bg-white/10 text-white">
+                <Activity className="w-3.5 h-3.5" />
+                Join the movement
+              </Badge>
+              <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+                See something broken?
+                <br />
+                Make your voice count.
+              </h2>
+              <p className="mt-4 text-white/70 max-w-xl mx-auto text-base sm:text-lg">
+                Join thousands of citizens building a cleaner, safer, smarter city — one report at a time.
               </p>
-            </div>
-
-            {/* Column 2: Platform Links */}
-            <div>
-              <h4 style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--hazard)',
-                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px'
-              }}>Platform</h4>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <li>
-                  <Link to="/home" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
-                    Live Incidents Map
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/report" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
-                    Report a Hazard
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/leaderboard" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
-                    Leaderboard & Ranks
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
-                    Ward Administrator
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 3: Resources & Info */}
-            <div>
-              <h4 style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--hazard)',
-                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px'
-              }}>Resources</h4>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <li>
-                  <Link to="/faq" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
-                    Help & Support FAQ
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/guidelines" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
-                    Community Guidelines
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/terms" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/privacy" style={{ color: 'rgba(238,241,236,0.7)', textDecoration: 'none', fontSize: '0.75rem' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'white')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(238,241,236,0.7)')}>
-                    Privacy Policy
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 4: System Status */}
-            <div>
-              <h4 style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--hazard)',
-                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px'
-              }}>Network Health</h4>
-              <div style={{
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid var(--grid)',
-                borderRadius: '3px',
-                padding: '12px',
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '0.7rem'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>STATUS:</span>
-                  <span style={{ color: 'var(--verified)', fontWeight: 'bold' }}>NOMINAL</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>NODES:</span>
-                  <span style={{ color: 'white' }}>18 ACTIVE</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'rgba(238,241,236,0.5)' }}>VERSION:</span>
-                  <span style={{ color: 'white' }}>v2.4.1</span>
-                </div>
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                <Button to="/report" size="lg" className="!bg-white !text-night hover:!brightness-95">
+                  Report an Issue
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+                <Button to="/login" variant="ghost" size="lg" className="!text-white hover:!bg-white/10">
+                  Sign in free
+                </Button>
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            borderTop: '1px solid var(--grid)', paddingTop: '20px',
-            fontSize: '0.7rem', color: 'rgba(238,241,236,0.4)', flexWrap: 'wrap', gap: '10px'
-          }}>
-            <div>© Civic Pulse Network — Decentralized Ward Administration</div>
-            <div style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
-              GEOHASH INDEXING ACTIVE
+      {/* ── Footer ── */}
+      <footer className="bg-night text-white/70">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+            <div className="lg:col-span-2">
+              <Logo dark />
+              <p className="mt-4 text-sm text-white/50 leading-relaxed max-w-xs">
+                A smart civic engagement platform connecting citizens and city administration — transparent, AI-assisted, and
+                built for every neighbourhood.
+              </p>
+              <div className="mt-6 flex items-center gap-2">
+                <Badge tone="success" dot>
+                  All systems operational
+                </Badge>
+              </div>
+            </div>
+
+            {FOOTER_COLS.map((col) => (
+              <div key={col.title}>
+                <h4 className="text-sm font-bold text-white mb-4">{col.title}</h4>
+                <ul className="space-y-2.5">
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      <Link to={l.to} className="text-sm text-white/50 hover:text-white transition-colors no-underline">
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+
+            <div>
+              <h4 className="text-sm font-bold text-white mb-4">Get in touch</h4>
+              <p className="text-sm text-white/50 leading-relaxed">
+                Have feedback or partnership ideas?
+                <br />
+                We'd love to hear from you.
+              </p>
+              <Link
+                to="/faq"
+                className="inline-flex items-center gap-1.5 mt-4 text-sm font-semibold text-primary hover:underline"
+              >
+                Visit our FAQ
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
-        </footer>
-      </div>
 
-      {/* Responsive nav hide style */}
-      <style>{`
-        @media (max-width: 720px) {
-          .landing-nav-links { display: none !important; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-/* ── Small helpers ────────────────────────────────────────────────────── */
-const displayStyle: React.CSSProperties = {
-  fontFamily: "'Big Shoulders Display', sans-serif",
-  fontWeight: 900,
-  textTransform: 'uppercase',
-  letterSpacing: '0.01em',
-  color: 'var(--ink)',
-  lineHeight: 1.05,
-};
-
-const monoStyle: React.CSSProperties = {
-  fontFamily: "'IBM Plex Mono', monospace",
-};
-
-function LandingEyebrow({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
-  return (
-    <div style={{
-      fontFamily: "'IBM Plex Mono', monospace",
-      fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase',
-      color: dark ? 'rgba(242,183,5,0.9)' : 'rgba(22,40,61,0.45)',
-      display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px',
-    }}>
-      <span style={{ color: 'var(--hazard)', fontSize: '0.55rem' }}>◆</span>
-      {children}
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════
-   HERO TERMINAL — live-looking field ops panel for hero RHS
-══════════════════════════════════════════════════════════════ */
-const MINI_REPORTS = [
-  { sev: 9, color: 'var(--signal)', label: 'Water main leak, MG Road',       id: 'CP-10198' },
-  { sev: 6, color: 'var(--hazard)', label: 'Deep pothole near bus stop',      id: 'CP-10234' },
-  { sev: 4, color: 'var(--hazard)', label: 'Loose manhole cover, 14th Ave',   id: 'CP-10241' },
-];
-
-function HeroTerminal() {
-  return (
-    <div style={{ position: 'relative', width: '100%' }}>
-      {/* ── Registration / survey corner marks ─────────────────── */}
-      {(['topLeft','topRight','bottomLeft','bottomRight'] as const).map(pos => (
-        <CornerMark key={pos} position={pos} />
-      ))}
-
-      {/* ── Main terminal frame ──────────────────────────────────── */}
-      <div style={{
-        background: '#0B1929',
-        border: '1px solid var(--grid)',
-        borderRadius: '4px',
-        overflow: 'hidden',
-        margin: '10px',   /* leaves room for corner marks */
-        position: 'relative',
-      }}>
-
-        {/* Header bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '7px 12px',
-          background: '#0F1D2C',
-          borderBottom: '1px solid var(--grid)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%', background: 'var(--signal)',
-              display: 'inline-block',
-              animation: 'ring-pulse 1.4s ease-out infinite',
-            }} />
-            <span style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: '0.6rem', letterSpacing: '0.1em', color: 'var(--hazard)',
-              textTransform: 'uppercase',
-            }}>LIVE · WARD 07 DISPATCH</span>
-          </div>
-          <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: '0.56rem', color: 'rgba(238,241,236,0.35)',
-            letterSpacing: '0.06em',
-          }}>SYS: NOMINAL</span>
-        </div>
-
-        {/* City-grid map */}
-        <div style={{ position: 'relative', overflow: 'hidden' }}>
-          <svg viewBox="0 0 340 220" style={{ width: '100%', display: 'block' }}>
-            {/* Block grid */}
-            <rect width="340" height="220" fill="#0B1929"/>
-            {/* Fine blueprint grid */}
-            {Array.from({ length: 8 }).map((_, i) => (
-              <line key={`h${i}`} x1="0" y1={i * 28} x2="340" y2={i * 28} stroke="#1A2E44" strokeWidth="0.5"/>
-            ))}
-            {Array.from({ length: 13 }).map((_, i) => (
-              <line key={`v${i}`} x1={i * 28} y1="0" x2={i * 28} y2="220" stroke="#1A2E44" strokeWidth="0.5"/>
-            ))}
-
-            {/* City blocks — main streets */}
-            <line x1="0" y1="70" x2="340" y2="70" stroke="#2E4A66" strokeWidth="2"/>
-            <line x1="0" y1="148" x2="340" y2="148" stroke="#2E4A66" strokeWidth="2"/>
-            <line x1="84" y1="0" x2="84" y2="220" stroke="#2E4A66" strokeWidth="2"/>
-            <line x1="196" y1="0" x2="196" y2="220" stroke="#2E4A66" strokeWidth="2"/>
-            <line x1="280" y1="0" x2="280" y2="220" stroke="#2E4A66" strokeWidth="2"/>
-
-            {/* Filled city block silhouettes */}
-            {[
-              [6,6,70,56], [90,6,98,56], [200,6,72,56],
-              [6,78,70,62], [90,78,98,62], [200,78,72,62],
-              [6,156,70,58], [90,156,98,58], [200,156,72,58],
-              [286,6,48,56], [286,78,48,62], [286,156,48,58],
-            ].map(([x,y,w,h], i) => (
-              <rect key={i} x={x} y={y} width={w} height={h} fill="#152234" rx="1"/>
-            ))}
-
-            {/* ── Severity pins ── */}
-            {/* Critical sev 9 — with animated pulse ring */}
-            <circle cx="148" cy="108" r="22" fill="none" stroke="#D6483D" strokeWidth="1" opacity="0.3">
-              <animate attributeName="r" values="12;22;12" dur="2s" repeatCount="indefinite"/>
-              <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="148" cy="108" r="8" fill="#D6483D"/>
-            <circle cx="148" cy="108" r="3" fill="white" opacity="0.8"/>
-
-            {/* Critical sev 9 — second */}
-            <circle cx="64" cy="168" r="20" fill="none" stroke="#D6483D" strokeWidth="1" opacity="0.3">
-              <animate attributeName="r" values="10;20;10" dur="2.4s" repeatCount="indefinite"/>
-              <animate attributeName="opacity" values="0.5;0;0.5" dur="2.4s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="64" cy="168" r="7" fill="#D6483D"/>
-            <circle cx="64" cy="168" r="2.5" fill="white" opacity="0.8"/>
-
-            {/* Moderate sev 6 */}
-            <circle cx="236" cy="52" r="6" fill="#F2B705"/>
-            <circle cx="236" cy="52" r="2.5" fill="white" opacity="0.8"/>
-
-            {/* Moderate sev 5 */}
-            <circle cx="310" cy="160" r="5.5" fill="#F2B705"/>
-            <circle cx="310" cy="160" r="2" fill="white" opacity="0.8"/>
-
-            {/* Resolved */}
-            <circle cx="130" cy="40" r="5" fill="#4C8F68"/>
-            <circle cx="130" cy="40" r="2" fill="white" opacity="0.8"/>
-
-            {/* Resolved */}
-            <circle cx="320" cy="60" r="5" fill="#4C8F68"/>
-            <circle cx="320" cy="60" r="2" fill="white" opacity="0.8"/>
-
-            {/* "You are here" marker */}
-            <circle cx="196" cy="148" r="9" fill="none" stroke="white" strokeWidth="1.5" opacity="0.5"/>
-            <circle cx="196" cy="148" r="3" fill="white" opacity="0.7"/>
-            <text x="204" y="144" fill="white" opacity="0.5" fontSize="8"
-              fontFamily="IBM Plex Mono, monospace">YOU</text>
-
-            {/* Scan-line sweep */}
-            <rect x="0" y="0" width="340" height="4" fill="rgba(242,183,5,0.07)">
-              <animateTransform attributeName="transform" type="translate"
-                values="0,0;0,220;0,0" dur="4s" repeatCount="indefinite"/>
-            </rect>
-
-            {/* Geohash grid labels */}
-            <text x="4" y="20" fill="#2E4A66" fontSize="7" fontFamily="IBM Plex Mono, monospace" opacity="0.8">ttnfv2r</text>
-            <text x="90" y="20" fill="#2E4A66" fontSize="7" fontFamily="IBM Plex Mono, monospace" opacity="0.8">ttnfv2s</text>
-            <text x="200" y="20" fill="#2E4A66" fontSize="7" fontFamily="IBM Plex Mono, monospace" opacity="0.8">ttnfv2u</text>
-          </svg>
-
-          {/* Map legend strip */}
-          <div style={{
-            position: 'absolute', bottom: 8, right: 8,
-            background: 'rgba(11,25,41,0.9)',
-            border: '1px solid var(--grid)',
-            padding: '5px 10px',
-            borderRadius: '2px',
-            display: 'flex', gap: '10px',
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: '0.6rem', color: 'rgba(238,241,236,0.55)',
-          }}>
-            {[['#D6483D','CRIT'],['#F2B705','MOD'],['#4C8F68','OK']].map(([c,l]) => (
-              <span key={l} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: c, display: 'inline-block' }} />
-                {l}
-              </span>
-            ))}
+          <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/40">
+            <p>© {new Date().getFullYear()} CivicPulse. Built for better cities.</p>
+            <p className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              Live · 38 wards connected
+            </p>
           </div>
         </div>
-
-        {/* ── Live stat strip ─────────────────────────────────── */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-          borderTop: '1px solid var(--grid)',
-          borderBottom: '1px solid var(--grid)',
-        }}>
-          {[
-            { label: 'ACTIVE',   value: 24, color: 'var(--paper)' },
-            { label: 'CRITICAL', value: 7,  color: 'var(--signal)' },
-            { label: 'RESOLVED', value: 18, color: 'var(--verified)' },
-          ].map(({ label, value, color }, i) => (
-            <div
-              key={label}
-              style={{
-                padding: '7px 10px',
-                textAlign: 'center',
-                borderRight: i < 2 ? '1px solid var(--grid)' : 'none',
-              }}
-            >
-              <div style={{
-                fontFamily: "'Big Shoulders Display', sans-serif",
-                fontWeight: 900, fontSize: '1.25rem', lineHeight: 1,
-                color,
-              }}>{value}</div>
-              <div style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '0.5rem', letterSpacing: '0.07em',
-                textTransform: 'uppercase', color: 'rgba(238,241,236,0.35)',
-                marginTop: '2px',
-              }}>{label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Incoming report mini-feed ────────────────────────── */}
-        <div style={{ padding: '6px 0 2px' }}>
-          {MINI_REPORTS.map((r, i) => (
-            <div
-              key={r.id}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '4px 12px',
-                borderBottom: i < MINI_REPORTS.length - 1 ? '1px solid rgba(46,74,102,0.4)' : 'none',
-                opacity: i === 0 ? 1 : 1 - i * 0.18,
-              }}
-            >
-              {/* Severity stub */}
-              <span style={{
-                fontFamily: "'Big Shoulders Display', sans-serif",
-                fontWeight: 900, fontSize: '0.875rem', lineHeight: 1,
-                color: r.color, minWidth: '20px', textAlign: 'center',
-              }}>{r.sev}</span>
-              <span style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '0.55rem', color: 'rgba(46,74,102,0.9)',
-              }}>│</span>
-              <span style={{
-                fontFamily: "'IBM Plex Sans', sans-serif",
-                fontSize: '0.7rem', color: 'rgba(238,241,236,0.65)',
-                flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{r.label}</span>
-              <span style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '0.55rem', color: 'rgba(238,241,236,0.28)',
-                whiteSpace: 'nowrap',
-              }}>{r.id}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer: geohash + ward code */}
-        <div style={{
-          padding: '5px 12px',
-          borderTop: '1px solid var(--grid)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: '#0F1D2C',
-        }}>
-          <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: '0.55rem', color: 'rgba(238,241,236,0.3)', letterSpacing: '0.07em',
-          }}>28.6139° N  77.2090° E</span>
-          <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: '0.55rem', color: 'var(--verified)', letterSpacing: '0.07em',
-          }}>● FEED ACTIVE</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Survey corner registration marks ──────────────────────────────── */
-function CornerMark({ position }: { position: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' }) {
-  const isRight  = position.includes('Right');
-  const isBottom = position.includes('bottom');
-  const size = 18;
-  return (
-    <div style={{
-      position: 'absolute',
-      top:    isBottom ? undefined : 0,
-      bottom: isBottom ? 0 : undefined,
-      left:   isRight  ? undefined : 0,
-      right:  isRight  ? 0 : undefined,
-      width: size, height: size,
-      zIndex: 10,
-    }}>
-      <svg viewBox="0 0 18 18" fill="none" width={size} height={size}>
-        {/* Horizontal arm */}
-        <line
-          x1={isRight ? 18 : 0} y1={isBottom ? 9 : 9}
-          x2={isRight ? 10 : 8} y2={isBottom ? 9 : 9}
-          stroke="var(--hazard)" strokeWidth="1.5"
-        />
-        {/* Vertical arm */}
-        <line
-          x1={isRight ? 9 : 9} y1={isBottom ? 18 : 0}
-          x2={isRight ? 9 : 9} y2={isBottom ? 10 : 8}
-          stroke="var(--hazard)" strokeWidth="1.5"
-        />
-        {/* Dot */}
-        <circle cx="9" cy="9" r="1.5" fill="var(--hazard)" opacity="0.7"/>
-      </svg>
+      </footer>
     </div>
   );
 }
