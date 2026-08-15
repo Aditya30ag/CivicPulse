@@ -6,8 +6,12 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './lib/theme';
+import { ToastProvider } from './contexts/ToastContext';
+import Landing from './pages/Landing';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Report from './pages/Report';
@@ -15,32 +19,47 @@ import IssueDetail from './pages/IssueDetail';
 import Leaderboard from './pages/Leaderboard';
 import Admin from './pages/Admin';
 import Profile from './pages/Profile';
-import AdminReports from './pages/AdminReports';
+import FAQ from './pages/FAQ';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route element={<Layout />}>
-            {/* Public routes inside layout */}
-            <Route path="/" element={<Home />} />
-            <Route path="/issue/:id" element={<IssueDetail />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/reports" element={<AdminReports />} />
-            
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/report" element={<Report />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/profile" element={<Profile />} />
-            </Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                {/* Landing page — no layout chrome */}
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route element={<Layout />}>
+                  {/* Public routes inside layout */}
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/issue/:id" element={<IssueDetail />} />
+
+                  {/* Admin-only routes */}
+                  <Route element={<AdminRoute />}>
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/admin/:subpage" element={<Admin />} />
+                  </Route>
+
+                  {/* Protected routes */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/report" element={<Report />} />
+                    <Route path="/leaderboard" element={<Leaderboard />} />
+                    <Route path="/profile" element={<Profile />} />
+                  </Route>
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }
