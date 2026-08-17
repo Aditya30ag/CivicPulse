@@ -7,6 +7,7 @@ export {
 
 export type {
   PerceptionResult,
+  BBox,
   DuplicateResult,
   TrendPrediction,
   RecentReportItem as RecentReport,

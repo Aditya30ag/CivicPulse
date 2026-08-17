@@ -47,21 +47,22 @@ def clean_and_parse_json(text: str, context: str) -> Dict[str, Any]:
         raise ValueError(f"Failed to parse Gemini response for {context}")
 
 def generate_content_with_image(image_url: str, prompt: str) -> str:
-    client = get_genai_client()
-    
     # Fetch image content
     response = requests.get(image_url)
     if response.status_code != 200:
         raise ValueError(f"Failed to fetch image from URL: {image_url}")
-        
+
     content_type = response.headers.get("content-type", "image/jpeg")
-    image_bytes = response.content
+    return generate_content_with_image_bytes(response.content, content_type, prompt)
+
+def generate_content_with_image_bytes(image_bytes: bytes, mime_type: str, prompt: str) -> str:
+    client = get_genai_client()
 
     # Call Gemini model using google-genai SDK
     result = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=content_type),
+            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
             prompt
         ]
     )

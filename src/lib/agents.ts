@@ -1,9 +1,20 @@
+export interface BBox {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
 export interface PerceptionResult {
-  category: string;
-  severity: number;
-  title: string;
-  description: string;
-  reasoning: string;
+  /** false when the model found no civic issue in the image (not an error) */
+  detected?: boolean;
+  category: string | null;
+  confidence: number | null;
+  bbox?: BBox | null;
+  severity: number | null;
+  title: string | null;
+  description: string | null;
+  reasoning: string | null;
 }
 
 export interface DuplicateResult {
@@ -31,8 +42,8 @@ export interface PipelineResult {
     trace_entry: AgentTraceEntry;
   };
   severity: {
-    initial_severity: number;
-    final_severity: number;
+    initial_severity: number | null;
+    final_severity: number | null;
     is_escalation: boolean;
     reasoning: string;
     trace_entry: AgentTraceEntry;
@@ -41,16 +52,16 @@ export interface PipelineResult {
     action: "MERGE" | "CREATE";
     is_duplicate: boolean;
     duplicate_candidate_id?: string;
-    final_severity: number;
+    final_severity: number | null;
     orchestrator_reasoning: string;
     agent_trace: AgentTraceEntry[];
   };
-  category: string;
-  title: string;
-  description: string;
-  final_severity: number;
+  category: string | null;
+  title: string | null;
+  description: string | null;
+  final_severity: number | null;
   is_duplicate: boolean;
-  duplicate_candidate_id?: string;
+  duplicate_candidate_id?: string | null;
   agent_trace: AgentTraceEntry[];
 }
 
