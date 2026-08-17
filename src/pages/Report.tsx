@@ -5,8 +5,8 @@ import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, arrayUnion, doc } from 'firebase/firestore';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Upload, X, Loader2, Image as ImageIcon, Video, CheckCircle2, Camera, Sparkles, Building2, ArrowRight, ArrowLeft, LocateFixed, Crosshair, PenLine } from 'lucide-react';
-import { analyzeIssueImage, checkDuplicateIssue, processReportPipeline } from '../lib/gemini';
+import { MapPin, Upload, X, Loader2, Image as ImageIcon, Video, CheckCircle2, Camera, Sparkles, Building2, ArrowRight, ArrowLeft, LocateFixed, Crosshair } from 'lucide-react';
+import { analyzeIssueImage, checkDuplicateIssue, processReportPipeline, type BBox } from '../lib/gemini';
 import { geohashForLocation, geohashQueryBounds, distanceBetween } from 'geofire-common';
 import Stepper from '../components/ui/Stepper';
 import Button from '../components/ui/Button';
@@ -36,16 +36,7 @@ const uploadToCloudinary = async (file: File): Promise<string> => {
   return data.data.secure_url;
 };
 
-const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  Road: MapPin,
-  Trash2: Camera,
-  Droplets: MapPin,
-  Zap: Camera,
-  ShieldAlert: MapPin,
-};
-
 const STEPS = [
-  { id: 'category', label: 'Category' },
   { id: 'media', label: 'Media' },
   { id: 'location', label: 'Location' },
   { id: 'details', label: 'Details' },
@@ -80,6 +71,66 @@ const pinIcon = L.divIcon({
   popupAnchor: [0, -30],
 });
 
+/* ── Image with YOLO detection box overlay ────────────────────────────── */
+function DetectionOverlay({
+  src,
+  imageSize,
+  bbox,
+  category,
+  confidence,
+  maxHeight = '60vh',
+}: {
+  src: string;
+  imageSize: { w: number; h: number };
+  bbox: BBox | null;
+  category?: string;
+  confidence?: number | null;
+  maxHeight?: string;
+}) {
+  // Label: category · confidence · box dimensions (px, relative to the original image)
+  const label = [
+    category || 'Detected',
+    confidence != null ? `${Math.round(confidence * 100)}%` : null,
+    bbox ? `${Math.round(bbox.x2 - bbox.x1)}×${Math.round(bbox.y2 - bbox.y1)}px` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  // The container matches the image aspect ratio, so percentage offsets map
+  // 1:1 to the detection's pixel coordinates in the original image.
+  const labelBelow = bbox ? bbox.y1 < imageSize.h * 0.08 : false;
+
+  return (
+    <div
+      className="relative rounded-2xl overflow-hidden border border-line bg-subtle"
+      style={{ aspectRatio: `${imageSize.w} / ${imageSize.h}`, maxHeight }}
+    >
+      <img src={src} alt="Uploaded issue" className="w-full h-full object-contain" />
+      {bbox && (
+        <div
+          className="absolute border-2 border-primary rounded pointer-events-none"
+          style={{
+            left: `${(bbox.x1 / imageSize.w) * 100}%`,
+            top: `${(bbox.y1 / imageSize.h) * 100}%`,
+            width: `${((bbox.x2 - bbox.x1) / imageSize.w) * 100}%`,
+            height: `${((bbox.y2 - bbox.y1) / imageSize.h) * 100}%`,
+          }}
+        >
+          {label && (
+            <span
+              className={`absolute left-0 whitespace-nowrap rounded-md bg-primary px-1.5 py-0.5 text-[0.625rem] font-bold text-white shadow-md ${
+                labelBelow ? 'top-full mt-1' : '-top-6'
+              }`}
+            >
+              {label}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Report() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -95,6 +146,9 @@ export default function Report() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [uploadedMediaUrl, setUploadedMediaUrl] = useState<string | null>(null);
+  const [imageSize, setImageSize] = useState<{ w: number; h: number } | null>(null);
+  const [bbox, setBbox] = useState<BBox | null>(null);
+  const [confidence, setConfidence] = useState<number | null>(null);
 
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -103,8 +157,6 @@ export default function Report() {
   const [manualLng, setManualLng] = useState('');
 
   const [category, setCategory] = useState<string>('');
-  const [customCategory, setCustomCategory] = useState<string>('');
-  const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [description, setDescription] = useState<string>('');
   const [title, setTitle] = useState<string>('');
   const [severity, setSeverity] = useState<number>(5);
@@ -120,12 +172,7 @@ export default function Report() {
         const draft = JSON.parse(savedDraft);
         setTitle(draft.title || '');
         setDescription(draft.description || '');
-        const savedCat = draft.category || '';
-        setCategory(savedCat);
-        if (savedCat && !CATEGORIES.some((c) => c.id === savedCat)) {
-          setCustomCategory(savedCat);
-          setSelectedCard('custom');
-        }
+        setCategory(draft.category || '');
         setSeverity(draft.severity || 5);
       }
     } catch (e) {
@@ -146,10 +193,20 @@ export default function Report() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const type = selectedFile.type.startsWith('video/') ? 'video' : 'image';
+      const url = URL.createObjectURL(selectedFile);
       setFile(selectedFile);
       setMediaType(type);
-      setPreviewUrl(URL.createObjectURL(selectedFile));
+      setPreviewUrl(url);
       setUploadedMediaUrl(null);
+      setBbox(null);
+      setConfidence(null);
+      setImageSize(null);
+      if (type === 'image') {
+        // Read natural dimensions so the detection box can be overlaid accurately.
+        const probe = new Image();
+        probe.onload = () => setImageSize({ w: probe.naturalWidth, h: probe.naturalHeight });
+        probe.src = url;
+      }
     }
   };
 
@@ -159,6 +216,9 @@ export default function Report() {
     setPreviewUrl(null);
     setMediaType(null);
     setUploadedMediaUrl(null);
+    setBbox(null);
+    setConfidence(null);
+    setImageSize(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -196,16 +256,15 @@ export default function Report() {
         try {
           const analysis = await analyzeIssueImage(url);
           setCategory(analysis.category || category);
-          if (analysis.category && CATEGORIES.some((c) => c.id === analysis.category)) {
-            setSelectedCard(analysis.category);
-            setCustomCategory('');
-          }
           setDescription(analysis.description || '');
           setTitle(analysis.title || '');
           setSeverity(analysis.severity || 5);
           setReasoning(analysis.reasoning || '');
+          setBbox(analysis.bbox || null);
+          setConfidence(analysis.confidence ?? null);
         } catch (e: any) {
           console.warn('AI analysis unavailable:', e);
+          setError(e?.message || 'AI analysis failed. Please try again or continue manually.');
           setReasoning('AI analysis unavailable — values entered manually.');
         }
       } else {
@@ -223,20 +282,19 @@ export default function Report() {
 
   /* ── Step navigation with validation ── */
   const canContinue = () => {
-    if (step === 1) return !!category;
-    if (step === 2) return !!file;
-    if (step === 3) return !!location;
-    if (step === 4) return title.trim().length > 0 && description.trim().length > 0;
+    if (step === 1) return !!file;
+    if (step === 2) return !!location;
+    if (step === 3) return title.trim().length > 0 && description.trim().length > 0;
     return true;
   };
 
   const handleContinue = async () => {
     setError(null);
-    if (step === 3) {
+    if (step === 2) {
       const ok = await runAnalysis();
       if (!ok) return;
     }
-    setStep((s) => Math.min(5, s + 1));
+    setStep((s) => Math.min(4, s + 1));
   };
 
   const handleBack = () => {
@@ -422,109 +480,8 @@ export default function Report() {
         </div>
       )}
 
-      {/* ══════════ STEP 1 — CATEGORY ══════════ */}
+      {/* ══════════ STEP 1 — MEDIA ══════════ */}
       {step === 1 && (
-        <div className="animate-fade-up">
-          <h2 className="text-base font-bold text-ink mb-1">What type of issue is it?</h2>
-          <p className="text-sm text-muted mb-5">Pick the closest match — AI will refine it from your photo.</p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {CATEGORIES.map((c) => {
-              const Icon = CATEGORY_ICONS[c.icon] ?? MapPin;
-              const active = selectedCard === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCard(c.id);
-                    setCategory(c.id);
-                  }}
-                  className={`group text-left rounded-2xl border-2 p-5 transition-all duration-200 ${
-                    active
-                      ? 'border-primary bg-primary/5 shadow-[0_8px_24px_-12px_rgba(37,99,235,0.5)]'
-                      : 'border-line bg-card hover:border-primary/40 hover:shadow-card'
-                  }`}
-                >
-                  <span
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-colors ${
-                      active ? 'bg-primary text-white' : 'bg-primary-soft text-primary group-hover:bg-primary group-hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </span>
-                  <h3 className="text-sm font-bold text-ink">{c.label}</h3>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">{c.desc}</p>
-                  {active && (
-                    <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Selected
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-
-            {/* Other — lets the user type a custom issue type */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCard('custom');
-                setCategory(customCategory.trim() || 'Other');
-              }}
-              className={`group text-left rounded-2xl border-2 p-5 transition-all duration-200 ${
-                selectedCard === 'custom'
-                  ? 'border-primary bg-primary/5 shadow-[0_8px_24px_-12px_rgba(37,99,235,0.5)]'
-                  : 'border-line bg-card hover:border-primary/40 hover:shadow-card'
-              }`}
-            >
-              <span
-                className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-colors ${
-                  selectedCard === 'custom'
-                    ? 'bg-primary text-white'
-                    : 'bg-primary-soft text-primary group-hover:bg-primary group-hover:text-white'
-                }`}
-              >
-                <PenLine className="w-5 h-5" />
-              </span>
-              <h3 className="text-sm font-bold text-ink">Other</h3>
-              <p className="text-xs text-muted mt-1 leading-relaxed">Something else — type the issue type below</p>
-              {selectedCard === 'custom' && (
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Selected
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Custom category input — shown when Other is selected */}
-          {selectedCard === 'custom' && (
-            <div className="mt-5 animate-fade-in">
-              <label htmlFor="customCategory" className="block text-[0.8125rem] font-semibold text-ink mb-1.5">
-                Describe the issue type
-              </label>
-              <div className="relative">
-                <PenLine className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
-                <input
-                  id="customCategory"
-                  type="text"
-                  value={customCategory}
-                  onChange={(e) => {
-                    setCustomCategory(e.target.value);
-                    setCategory(e.target.value.trim() || 'Other');
-                  }}
-                  placeholder="e.g. Damaged footbridge, stray animal, illegal parking…"
-                  maxLength={60}
-                  autoFocus
-                  className="w-full h-11 rounded-xl border border-line-strong bg-card pl-10 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
-                />
-              </div>
-              <p className="text-xs text-faint mt-1.5">Your custom type will be used as the report category.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ══════════ STEP 2 — MEDIA ══════════ */}
-      {step === 2 && (
         <div className="animate-fade-up">
           <h2 className="text-base font-bold text-ink mb-1">Show us what's wrong</h2>
           <p className="text-sm text-muted mb-5">Upload a clear photo or short video of the issue.</p>
@@ -570,8 +527,8 @@ export default function Report() {
         </div>
       )}
 
-      {/* ══════════ STEP 3 — LOCATION ══════════ */}
-      {step === 3 && (
+      {/* ══════════ STEP 2 — LOCATION ══════════ */}
+      {step === 2 && (
         <div className="animate-fade-up">
           <h2 className="text-base font-bold text-ink mb-1">Where is the issue?</h2>
           <p className="text-sm text-muted mb-5">Click on the map to drop a pin, or use your current location.</p>
@@ -671,8 +628,8 @@ export default function Report() {
         </div>
       )}
 
-      {/* ══════════ STEP 4 — DETAILS + AI ANALYSIS ══════════ */}
-      {step === 4 && (
+      {/* ══════════ STEP 3 — DETAILS + AI ANALYSIS ══════════ */}
+      {step === 3 && (
         <div className="animate-fade-up">
           {analyzing ? (
             <div className="rounded-2xl border border-line bg-card p-10 flex flex-col items-center text-center">
@@ -693,6 +650,17 @@ export default function Report() {
             </div>
           ) : (
             <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
+              {/* Annotated image — shows the detected object's bounding box */}
+              {mediaType === 'image' && imageSize && (previewUrl || uploadedMediaUrl) && (
+                <DetectionOverlay
+                  src={previewUrl || uploadedMediaUrl || ''}
+                  imageSize={imageSize}
+                  bbox={bbox}
+                  category={category}
+                  confidence={confidence}
+                />
+              )}
+
               {/* AI summary */}
               <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/5 to-teal-brand/5 p-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -710,6 +678,9 @@ export default function Report() {
                     <p className="text-sm font-bold text-ink flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-success" />
                       {category ? categoryDisplay : '—'}
+                      {confidence != null && category && (
+                        <span className="text-xs font-semibold text-faint">· {Math.round(confidence * 100)}%</span>
+                      )}
                     </p>
                   </div>
                   <div className="rounded-xl bg-card/80 border border-line p-3">
@@ -732,6 +703,35 @@ export default function Report() {
                   </p>
                 )}
               </div>
+
+              {/* Manual category fallback — only when the AI did not detect one (e.g. video uploads or analysis errors) */}
+              {!category && (
+                <div className="rounded-xl border border-warning/25 bg-warning-soft p-4">
+                  <p className="text-[0.8125rem] font-semibold text-ink mb-1">What type of issue is it?</p>
+                  <p className="text-xs text-muted mb-3">
+                    No category was detected from your media — select one to continue.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.filter((c) => c.id !== 'Other').map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setCategory(c.id)}
+                        className="px-3.5 py-2 rounded-full border border-line-strong bg-card text-xs font-bold text-ink hover:border-primary hover:text-primary transition-colors"
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setCategory('Other')}
+                      className="px-3.5 py-2 rounded-full border border-line-strong bg-card text-xs font-bold text-ink hover:border-primary hover:text-primary transition-colors"
+                    >
+                      Other
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <Input
                 id="title"
@@ -777,21 +777,30 @@ export default function Report() {
         </div>
       )}
 
-      {/* ══════════ STEP 5 — REVIEW & SUBMIT ══════════ */}
-      {step === 5 && (
+      {/* ══════════ STEP 4 — REVIEW & SUBMIT ══════════ */}
+      {step === 4 && (
         <form onSubmit={handleFinalSubmit} className="animate-fade-up space-y-5">
           <h2 className="text-base font-bold text-ink">Review your report</h2>
 
           <div className="rounded-2xl border border-line bg-card overflow-hidden">
-            <div className="h-48 bg-subtle relative">
+            <div className="bg-subtle relative">
               {previewUrl || uploadedMediaUrl ? (
                 mediaType === 'video' ? (
-                  <video src={previewUrl || uploadedMediaUrl || ''} className="w-full h-full object-cover" controls />
+                  <video src={previewUrl || uploadedMediaUrl || ''} className="w-full max-h-[55vh] object-contain bg-night/90" controls />
+                ) : imageSize ? (
+                  <DetectionOverlay
+                    src={previewUrl || uploadedMediaUrl || ''}
+                    imageSize={imageSize}
+                    bbox={bbox}
+                    category={category}
+                    confidence={confidence}
+                    maxHeight="55vh"
+                  />
                 ) : (
-                  <img src={previewUrl || uploadedMediaUrl || ''} alt="Issue preview" className="w-full h-full object-cover" />
+                  <img src={previewUrl || uploadedMediaUrl || ''} alt="Issue preview" className="w-full max-h-[55vh] object-contain bg-night/90" />
                 )
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-faint">
+                <div className="h-48 w-full flex items-center justify-center text-faint">
                   <ImageIcon className="w-10 h-10" />
                 </div>
               )}
@@ -833,19 +842,19 @@ export default function Report() {
       )}
 
       {/* ── Footer navigation ── */}
-      <div className="mt-8 flex items-center justify-between gap-3">
-        <Button variant="ghost" onClick={handleBack} disabled={step === 1}>
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
+      {step < 4 ? (
+        <div className="mt-8 flex items-center justify-between gap-3">
+          <Button variant="ghost" onClick={handleBack} disabled={step === 1}>
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
 
-        <div className="flex items-center gap-2 text-xs text-faint">
-          Step {step} of 5
-        </div>
+          <div className="flex items-center gap-2 text-xs text-faint">
+            Step {step} of 4
+          </div>
 
-        {step < 5 ? (
           <Button onClick={handleContinue} disabled={!canContinue() || analyzing}>
-            {step === 4 && analyzing ? (
+            {step === 3 && analyzing ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" /> Analysing…
               </>
@@ -856,13 +865,25 @@ export default function Report() {
               </>
             )}
           </Button>
-        ) : (
-          <Button onClick={handleFinalSubmit as any} loading={submitting} disabled={submitting}>
-            <CheckCircle2 className="w-4 h-4" />
-            {submitting ? 'Submitting…' : 'Confirm Submit'}
+        </div>
+      ) : (
+        <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <Button variant="ghost" onClick={handleBack}>
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </Button>
-        )}
-      </div>
+          <Button
+            onClick={handleFinalSubmit as any}
+            loading={submitting}
+            disabled={submitting}
+            size="lg"
+            className="flex-1"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            {submitting ? 'Submitting…' : 'Confirm & Submit Report'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
