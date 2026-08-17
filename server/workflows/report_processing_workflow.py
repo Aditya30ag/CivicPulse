@@ -15,6 +15,50 @@ class ReportProcessingWorkflow:
         # Step 1: Perception Agent Execution
         perception_output = self.perception_agent.execute({"image_url": image_url})
 
+        # No civic issue detected in the image is a normal outcome, not an
+        # error: return early so the caller can fall back to manual entry
+        # instead of the pipeline failing with a 500.
+        if not perception_output.get("detected", True):
+            no_detection_reason = (
+                "No civic issue detected in the image; report will be created from manually entered details"
+            )
+            trace = self.perception_agent.create_trace_entry(no_detection_reason)
+            return {
+                "perception": perception_output,
+                "deduplication": {
+                    "is_duplicate": False,
+                    "duplicate_info": None,
+                    "highest_similarity": 0.0,
+                    "trace_entry": self.deduplication_agent.create_trace_entry(
+                        "Skipped — no issue detected in image"
+                    ),
+                },
+                "severity": {
+                    "initial_severity": None,
+                    "final_severity": None,
+                    "is_escalation": False,
+                    "reasoning": "Skipped — no issue detected in image",
+                    "trace_entry": self.severity_agent.create_trace_entry(
+                        "Skipped — no issue detected in image"
+                    ),
+                },
+                "orchestration": {
+                    "action": "CREATE",
+                    "is_duplicate": False,
+                    "duplicate_candidate_id": None,
+                    "final_severity": None,
+                    "orchestrator_reasoning": no_detection_reason,
+                    "agent_trace": [trace],
+                },
+                "category": None,
+                "title": None,
+                "description": None,
+                "final_severity": None,
+                "is_duplicate": False,
+                "duplicate_candidate_id": None,
+                "agent_trace": [trace],
+            }
+
         # Step 2: Deduplication Agent Execution
         new_location = (location["lat"], location["lng"]) if location and "lat" in location and "lng" in location else None
         dedup_inputs = {

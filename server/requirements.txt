@@ -8,3 +8,5 @@ pillow>=10.2.0
 cloudinary>=1.39.0
 haversine>=2.8.1
 python-multipart>=0.0.9
+ultralytics>=8.3.0
+numpy>=1.26.0
