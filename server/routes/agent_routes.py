@@ -32,7 +32,7 @@ class ForecastRequest(BaseModel):
 
 # Endpoints
 @router.post("/process-report")
-async def process_report_pipeline(request: ProcessReportRequest):
+def process_report_pipeline(request: ProcessReportRequest):
     try:
         workflow = ReportProcessingWorkflow()
         result = workflow.run(
@@ -45,7 +45,7 @@ async def process_report_pipeline(request: ProcessReportRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/perceive")
-async def perceive_image(request: PerceiveRequest):
+def perceive_image(request: PerceiveRequest):
     try:
         agent = PerceptionAgent()
         result = agent.execute({"image_url": request.imageUrl})
@@ -54,7 +54,7 @@ async def perceive_image(request: PerceiveRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/deduplicate")
-async def check_duplicate(request: DeduplicateRequest):
+def check_duplicate(request: DeduplicateRequest):
     try:
         agent = DeduplicationAgent()
         result = agent.compare_descriptions(request.newDescription, request.existingDescription)
@@ -63,7 +63,7 @@ async def check_duplicate(request: DeduplicateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/forecast")
-async def predict_ward_trend(request: ForecastRequest):
+def predict_ward_trend(request: ForecastRequest):
     try:
         workflow = WardForecastingWorkflow()
         reports_data = [item.model_dump() for item in request.recentReports]

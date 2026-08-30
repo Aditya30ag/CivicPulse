@@ -45,27 +45,40 @@ class DeduplicationAgent(BaseAgent):
         found_duplicate: Optional[Dict[str, Any]] = None
         highest_similarity = 0.0
 
+        # Filter candidates by spatial distance first
+        valid_candidates = []
         for candidate in candidates:
-            # Check spatial distance if coordinates available
             if new_location and "lat" in candidate and "lng" in candidate:
                 candidate_coords = (candidate["lat"], candidate["lng"])
                 is_near, dist = self.check_spatial_proximity(new_location, candidate_coords)
                 if not is_near:
                     continue
+            valid_candidates.append(candidate)
 
-            # Check semantic similarity via Gemini
-            sim_result = self.compare_descriptions(new_description, candidate.get("description", ""))
-            if sim_result["similarity"] > highest_similarity:
-                highest_similarity = sim_result["similarity"]
+        import concurrent.futures
+        # Check semantic similarity concurrently
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_candidate = {
+                executor.submit(self.compare_descriptions, new_description, candidate.get("description", "")): candidate
+                for candidate in valid_candidates
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_candidate):
+                candidate = future_to_candidate[future]
+                try:
+                    sim_result = future.result()
+                    if sim_result["similarity"] > highest_similarity:
+                        highest_similarity = sim_result["similarity"]
 
-            if sim_result["isDuplicate"]:
-                found_duplicate = {
-                    "candidate_id": candidate.get("id"),
-                    "candidate_description": candidate.get("description"),
-                    "existing_severity": candidate.get("severityScore", 5),
-                    "similarity": sim_result["similarity"]
-                }
-                break
+                    if sim_result["isDuplicate"] and not found_duplicate:
+                        found_duplicate = {
+                            "candidate_id": candidate.get("id"),
+                            "candidate_description": candidate.get("description"),
+                            "existing_severity": candidate.get("severityScore", 5),
+                            "similarity": sim_result["similarity"]
+                        }
+                except Exception as exc:
+                    print(f"Candidate semantic check generated an exception: {exc}")
 
         return {
             "is_duplicate": found_duplicate is not None,
