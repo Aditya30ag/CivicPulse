@@ -164,7 +164,15 @@ server/
 ---
 
 ## License
+
 This project is licensed under the **[PolyForm Noncommercial License 1.0.0](LICENSE)**.
 
-See the [LICENSE](LICENSE) file for complete legal terms.
+### Summary:
+- **Source Code Access**: The source code is open to view and inspect.
+- **Noncommercial Use & Modification**: You are permitted to use, modify, and build upon the software for personal, educational, research, and noncommercial purposes under the terms of the license.
+- **Contributions**: Contributions, improvements, and Pull Requests are welcome, subject to the repository's contribution rules.
+- **Commercial Restrictions**: Commercial use, selling the software, or incorporating it into commercial products, services, or paid offerings is not permitted under this license.
+
+> **Note**: This summary is provided for convenience and informational purposes only. The actual legal terms and conditions are governed solely by the **[LICENSE](LICENSE)** file.
+
 
