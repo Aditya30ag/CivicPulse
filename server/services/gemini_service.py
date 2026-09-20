@@ -46,6 +46,13 @@ def clean_and_parse_json(text: str, context: str) -> Dict[str, Any]:
         print(f"JSON parsing failed for {context}: {e}. Raw response: {text}")
         raise ValueError(f"Failed to parse Gemini response for {context}")
 
+FALLBACK_MODELS = [
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-latest",
+    "gemini-2.5-flash",
+]
+
 def generate_content_with_image(image_url: str, prompt: str) -> str:
     client = get_genai_client()
     
@@ -57,20 +64,37 @@ def generate_content_with_image(image_url: str, prompt: str) -> str:
     content_type = response.headers.get("content-type", "image/jpeg")
     image_bytes = response.content
 
-    # Call Gemini model using google-genai SDK
-    result = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=content_type),
-            prompt
-        ]
-    )
-    return result.text or ""
+    last_err = None
+    for model_name in FALLBACK_MODELS:
+        try:
+            result = client.models.generate_content(
+                model=model_name,
+                contents=[
+                    types.Part.from_bytes(data=image_bytes, mime_type=content_type),
+                    prompt
+                ]
+            )
+            return result.text or ""
+        except Exception as e:
+            print(f"Model {model_name} failed with error: {e}. Trying fallback...")
+            last_err = e
+            continue
+
+    raise RuntimeError(f"All Gemini models failed. Last error: {last_err}")
 
 def generate_text_content(prompt: str) -> str:
     client = get_genai_client()
-    result = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-    return result.text or ""
+    last_err = None
+    for model_name in FALLBACK_MODELS:
+        try:
+            result = client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+            return result.text or ""
+        except Exception as e:
+            print(f"Model {model_name} failed with error: {e}. Trying fallback...")
+            last_err = e
+            continue
+
+    raise RuntimeError(f"All Gemini models failed. Last error: {last_err}")
