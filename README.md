@@ -164,4 +164,7 @@ server/
 ---
 
 ## License
-This project is free software and available under the **GNU General Public License v3.0** (GPL-3.0). See the [LICENSE](LICENSE) file for more details.
+This project is licensed under the **[PolyForm Noncommercial License 1.0.0](LICENSE)**.
+
+See the [LICENSE](LICENSE) file for complete legal terms.
+
