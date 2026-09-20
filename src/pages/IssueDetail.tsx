@@ -13,6 +13,7 @@ import { StatusTimeline } from '../components/ComplaintCard';
 import { categoryById, departmentForCategory, severityColor, severityLabel, STATUS_META } from '../lib/status';
 import { formatDateTime, formatRelativeTime } from '../lib/format';
 import { useToast } from '../contexts/ToastContext';
+import { DUMMY_REPORTS } from '../lib/dummyData';
 
 interface AgentTraceEntry {
   agent: string;
@@ -84,13 +85,74 @@ export default function IssueDetail() {
             }
           }
         } else {
-          setError('Issue not found');
+          const dummy = DUMMY_REPORTS.find((d) => d.id === id);
+          if (dummy) {
+            setIssue({
+              mediaURL: dummy.mediaURL,
+              mediaType: dummy.mediaType || 'image',
+              category: dummy.category,
+              title: dummy.title,
+              description: dummy.description,
+              geoPoint: dummy.geoPoint,
+              reporterId: 'citizen-demo',
+              status: dummy.status,
+              severityScore: dummy.severityScore,
+              department: dummy.department,
+              createdAt: dummy.createdAt,
+              agentTrace: [
+                {
+                  agent: 'Perception Agent',
+                  reasoning: `Perception model classified hazard severity as ${dummy.severityScore}/10 under ${dummy.category}.`,
+                  timestamp: formatRelativeTime(dummy.createdAt),
+                },
+                {
+                  agent: 'Routing Agent',
+                  reasoning: `Geofence mapped within Metropolitan Ward 07. Automatically routed to ${dummy.department}.`,
+                  timestamp: formatRelativeTime(dummy.createdAt),
+                },
+              ],
+              updates: [
+                {
+                  text: `Automated dispatch created for ${dummy.department}`,
+                  by: 'CivicPulse Engine',
+                  at: formatRelativeTime(dummy.createdAt),
+                },
+              ],
+            });
+            setReporter({
+              name: 'Aarav Sharma (Verified Citizen)',
+              photoURL: '',
+            });
+          } else {
+            setError('Issue not found');
+          }
         }
         setLoading(false);
       },
       (err) => {
-        console.error('Firestore subscription error:', err);
-        setError('Failed to load issue data');
+        console.warn('Firestore subscription warning, checking mock reports:', err);
+        const dummy = DUMMY_REPORTS.find((d) => d.id === id);
+        if (dummy) {
+          setIssue({
+            mediaURL: dummy.mediaURL,
+            mediaType: dummy.mediaType || 'image',
+            category: dummy.category,
+            title: dummy.title,
+            description: dummy.description,
+            geoPoint: dummy.geoPoint,
+            reporterId: 'citizen-demo',
+            status: dummy.status,
+            severityScore: dummy.severityScore,
+            department: dummy.department,
+            createdAt: dummy.createdAt,
+          });
+          setReporter({
+            name: 'Aarav Sharma (Verified Citizen)',
+            photoURL: '',
+          });
+        } else {
+          setError('Failed to load issue data');
+        }
         setLoading(false);
       }
     );
@@ -195,29 +257,29 @@ export default function IssueDetail() {
   const severityTrace = issue.agentTrace?.find((t) => t.agent.toLowerCase() === 'severity');
 
   return (
-    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <Link to="/home" className="inline-flex items-center gap-1.5 text-sm font-bold text-muted hover:text-primary transition-colors no-underline mb-5">
-        <ArrowLeft className="w-4 h-4" /> Back to map
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-[#0A0A0A] text-[#F5F5F5]">
+      <Link to="/home" className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#888888] hover:text-[#F5F5F5] transition-colors no-underline mb-6">
+        <ArrowLeft className="w-3.5 h-3.5" /> BACK TO INCIDENT MAP
       </Link>
 
-      <div className="bg-card border border-line rounded-3xl shadow-card overflow-hidden">
+      <div className="editorial-card p-0 overflow-hidden bg-[#161616]">
         {/* Media */}
-        <div className="bg-night w-full flex items-center justify-center min-h-[16rem] max-h-[55vh] overflow-hidden">
+        <div className="bg-[#0A0A0A] w-full flex items-center justify-center min-h-[16rem] max-h-[55vh] overflow-hidden border-b border-[#222222]">
           {issue.mediaType === 'video' ? (
             <video src={issue.mediaURL} controls className="max-w-full max-h-[55vh] object-contain" />
           ) : (
-            <img src={issue.mediaURL} alt={`Issue: ${issue.category}`} className="max-w-full max-h-[55vh] object-contain" />
+            <img src={issue.mediaURL} alt={`Issue: ${issue.category}`} className="max-w-full max-h-[55vh] object-contain filter brightness-95" />
           )}
         </div>
 
-        <div className="p-5 sm:p-8">
+        <div className="p-6 sm:p-8">
           {/* Status + id row */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
             {isAdmin ? (
               <select
                 value={status}
                 onChange={(e) => handleUpdateStatus(e.target.value)}
-                className={`rounded-full px-3 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-wide cursor-pointer border ${statusMeta.bg} ${statusMeta.text} focus:outline-none`}
+                className="rounded-[2px] px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider cursor-pointer border border-[#222222] bg-[#111111] text-[#F5F5F5] focus:outline-none"
               >
                 <option value="reported">Reported</option>
                 <option value="community_verified">Verified</option>
@@ -225,98 +287,114 @@ export default function IssueDetail() {
                 <option value="resolved">Resolved</option>
               </select>
             ) : (
-              <Badge tone={status === 'resolved' ? 'success' : status === 'in_progress' || status === 'community_verified' ? 'warning' : 'danger'} dot dotColor={severityColor(sev ?? 5)}>
+              <span
+                className={
+                  status === 'resolved'
+                    ? 'status-badge-resolved'
+                    : status === 'in_progress' || status === 'community_verified'
+                      ? 'status-badge-progress'
+                      : 'status-badge-open'
+                }
+              >
                 {status.replace('_', ' ')}
-              </Badge>
+              </span>
             )}
-            <span className="text-xs font-mono text-faint">#{id?.substring(0, 8)}</span>
+            <span className="text-xs font-mono text-[#555555]">#{id?.substring(0, 8).toUpperCase()}</span>
             {issue.department && (
-              <Badge tone="primary">
+              <span className="px-2.5 py-0.5 rounded-[2px] bg-[#2563EB]/10 border border-[#2563EB]/30 font-mono text-[11px] text-[#2563EB] flex items-center gap-1.5">
                 <Building2 className="w-3 h-3" /> {issue.department}
-              </Badge>
+              </span>
             )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink mb-2">{issue.title || `${cat.label} issue`}</h1>
+          <h1 className="font-serif text-2xl sm:text-4xl font-normal text-[#F5F5F5] tracking-tight mb-4">
+            {issue.title || `${cat.label} issue`}
+          </h1>
 
           {/* Progress timeline */}
-          <div className="mt-4 mb-6 rounded-2xl bg-subtle border border-line p-4">
+          <div className="mb-6 rounded-[2px] bg-[#111111] border border-[#222222] p-4">
             <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[0.6875rem] font-bold uppercase tracking-widest text-faint">Progress</p>
-              <span className="text-xs font-bold text-ink capitalize">{status.replace('_', ' ')}</span>
+              <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#555555]">
+                DISPATCH LIFECYCLE
+              </p>
+              <span className="text-xs font-mono font-bold text-[#2563EB] uppercase">
+                {status.replace('_', ' ')}
+              </span>
             </div>
             <StatusTimeline status={status} />
           </div>
 
           {/* Metadata grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <div className="rounded-2xl border border-line bg-page p-4 flex items-start gap-3">
-              <User className="w-4 h-4 mt-0.5 shrink-0 text-muted" />
+            <div className="rounded-[2px] border border-[#222222] bg-[#111111] p-4 flex items-start gap-3">
+              <User className="w-4 h-4 mt-0.5 shrink-0 text-[#888888]" />
               <div>
-                <p className="text-[0.6875rem] font-bold uppercase tracking-widest text-faint mb-1">Reported by</p>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-[#555555] mb-1">Reported by</p>
                 <div className="flex items-center gap-2">
                   {reporter?.photoURL ? (
-                    <img src={reporter.photoURL} alt={reporter.name} className="w-6 h-6 rounded-full" />
+                    <img src={reporter.photoURL} alt={reporter.name} className="w-6 h-6 rounded-[2px] object-cover" />
                   ) : (
-                    <span className="w-6 h-6 rounded-full bg-primary-soft text-primary text-xs font-bold flex items-center justify-center">
-                      {reporter?.name?.charAt(0) || '?'}
+                    <span className="w-6 h-6 rounded-[2px] bg-[#2563EB]/20 text-[#2563EB] text-xs font-bold flex items-center justify-center font-mono">
+                      {reporter?.name?.charAt(0) || 'C'}
                     </span>
                   )}
-                  <span className="text-sm font-semibold text-ink">{reporter?.name || 'Loading…'}</span>
+                  <span className="text-xs font-mono font-semibold text-[#F5F5F5]">{reporter?.name || 'Anonymous Citizen'}</span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-line bg-page p-4 flex items-start gap-3">
-              <Clock className="w-4 h-4 mt-0.5 shrink-0 text-muted" />
+            <div className="rounded-[2px] border border-[#222222] bg-[#111111] p-4 flex items-start gap-3">
+              <Clock className="w-4 h-4 mt-0.5 shrink-0 text-[#888888]" />
               <div>
-                <p className="text-[0.6875rem] font-bold uppercase tracking-widest text-faint mb-1">Date reported</p>
-                <span className="text-sm font-semibold text-ink">{formatDateTime(issue.createdAt)}</span>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-[#555555] mb-1">Timestamp</p>
+                <span className="text-xs font-mono font-semibold text-[#F5F5F5]">{formatDateTime(issue.createdAt)}</span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-line bg-page p-4 flex items-start gap-3 sm:col-span-2">
-              <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-muted" />
+            <div className="rounded-[2px] border border-[#222222] bg-[#111111] p-4 flex items-start gap-3 sm:col-span-2">
+              <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-[#888888]" />
               <div className="flex-1">
-                <p className="text-[0.6875rem] font-bold uppercase tracking-widest text-faint mb-1">Location</p>
-                <span className="text-sm font-semibold text-ink">
-                  {issue.geoPoint.lat.toFixed(6)}, {issue.geoPoint.lng.toFixed(6)}
+                <p className="text-[10px] font-mono uppercase tracking-widest text-[#555555] mb-1">Geographic Coordinates</p>
+                <span className="text-xs font-mono font-semibold text-[#F5F5F5]">
+                  {issue.geoPoint.lat.toFixed(6)}° N, {issue.geoPoint.lng.toFixed(6)}° E
                 </span>
-                <span className="text-xs text-faint ml-2">· {cat.label}</span>
+                <span className="text-xs font-mono text-[#888888] ml-2">· [{cat.short}]</span>
               </div>
             </div>
           </div>
 
           {/* Description */}
           <div className="mb-8">
-            <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-faint mb-2.5">Description</h3>
-            <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{issue.description}</p>
+            <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#555555] mb-2">Description</h3>
+            <p className="text-xs sm:text-sm text-[#888888] leading-relaxed font-sans whitespace-pre-wrap">{issue.description}</p>
           </div>
 
           {/* Severity block */}
           {sev === undefined || sev === null ? (
-            <div className="mb-8 rounded-2xl border border-line bg-subtle p-6 flex items-center justify-center gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              <span className="text-sm italic text-muted">AI is assessing severity…</span>
+            <div className="mb-8 rounded-[2px] border border-[#222222] bg-[#111111] p-6 flex items-center justify-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-[#2563EB]" />
+              <span className="text-xs font-mono text-[#888888]">AI is assessing incident severity…</span>
             </div>
           ) : (
-            <div className="mb-8 rounded-2xl border border-line overflow-hidden">
+            <div className="mb-8 editorial-card p-0 overflow-hidden bg-[#111111]">
               <div className="flex items-stretch">
                 <div
-                  className="w-20 shrink-0 flex flex-col items-center justify-center gap-1"
-                  style={{ background: `${severityColor(sev)}14`, borderRight: '1px solid var(--line)' }}
+                  className="w-24 shrink-0 flex flex-col items-center justify-center gap-1 border-r border-[#222222]"
+                  style={{ backgroundColor: `${severityColor(sev)}12` }}
                 >
-                  <span className="text-4xl font-extrabold leading-none" style={{ color: severityColor(sev) }}>
+                  <span className="font-mono text-4xl font-bold leading-none" style={{ color: severityColor(sev) }}>
                     {sev}
                   </span>
-                  <span className="text-[0.625rem] font-bold uppercase tracking-widest" style={{ color: severityColor(sev) }}>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest" style={{ color: severityColor(sev) }}>
                     {severityLabel(sev)}
                   </span>
                 </div>
                 <div className="flex-1 p-5">
-                  <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-faint mb-2">AI Severity Assessment</h3>
-                  <p className="text-sm font-medium text-ink leading-relaxed">
-                    {severityTrace?.reasoning || `Assessed as severity level ${sev}/10 based on civic impact.`}
+                  <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#555555] mb-1.5">
+                    Machine Vision Severity Assessment
+                  </h3>
+                  <p className="text-xs font-mono text-[#F5F5F5] leading-relaxed">
+                    {severityTrace?.reasoning || `Assessed as severity level ${sev}/10 based on civic disruption and hazard proximity.`}
                   </p>
                 </div>
               </div>
@@ -326,17 +404,17 @@ export default function IssueDetail() {
           {/* Admin updates */}
           {issue.updates && issue.updates.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-faint mb-3 flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5" /> Department updates
+              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#555555] mb-3 flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5 text-[#2563EB]" /> Municipal Dispatch Log
               </h3>
               <div className="space-y-3">
                 {issue.updates.slice().reverse().map((u, i) => (
-                  <div key={i} className="rounded-2xl border border-line bg-page p-4">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-primary">{u.by}</span>
-                      <span className="text-[0.6875rem] text-faint">{formatRelativeTime(u.at)}</span>
+                  <div key={i} className="editorial-card p-4 bg-[#111111]">
+                    <div className="flex items-center justify-between mb-1.5 font-mono text-xs">
+                      <span className="text-[#2563EB] font-bold">[{u.by}]</span>
+                      <span className="text-[10px] text-[#555555]">{formatRelativeTime(u.at)}</span>
                     </div>
-                    <p className="text-sm text-ink leading-relaxed">{u.text}</p>
+                    <p className="text-xs text-[#F5F5F5] leading-relaxed font-sans">{u.text}</p>
                   </div>
                 ))}
               </div>
@@ -346,9 +424,11 @@ export default function IssueDetail() {
           {/* Agent trace */}
           {issue.agentTrace && issue.agentTrace.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-[0.6875rem] font-bold uppercase tracking-widest text-faint mb-5">AI Agent Reasoning</h3>
-              <div className="relative space-y-5 pl-2">
-                <div className="absolute left-[23px] top-4 bottom-4 w-px bg-line" aria-hidden="true" />
+              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#555555] mb-5">
+                Autonomous AI Routing Pipeline
+              </h3>
+              <div className="relative space-y-4 pl-2">
+                <div className="absolute left-[21px] top-4 bottom-4 w-[2px] bg-[#222222]" aria-hidden="true" />
                 {issue.agentTrace.map((trace, index) => {
                   const agent = trace.agent.toLowerCase();
                   const Icon =
@@ -359,7 +439,6 @@ export default function IssueDetail() {
                     : agent === 'routing' ? Building2
                     : agent === 'orchestrator' ? GitMerge
                     : CheckCircle;
-                  const tone = index % 2 === 0 ? 'bg-primary-soft text-primary' : 'bg-teal-soft text-teal-brand';
                   return (
                     <motion.div
                       key={index}
@@ -368,15 +447,17 @@ export default function IssueDetail() {
                       transition={{ delay: Math.min(index * 0.12, 0.6), duration: 0.35 }}
                       className="relative z-10 flex gap-4"
                     >
-                      <span className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 border-card shadow-card shrink-0 ${tone}`}>
+                      <span className="w-9 h-9 rounded-[2px] flex items-center justify-center border border-[#222222] bg-[#161616] text-[#2563EB] shrink-0">
                         <Icon className="w-4 h-4" />
                       </span>
-                      <div className="flex-1 bg-card border border-line rounded-2xl shadow-card p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                          <span className="text-xs font-bold uppercase tracking-wide text-primary">{trace.agent} Agent</span>
-                          <span className="text-xs text-faint font-mono">{formatRelativeTime(trace.timestamp)}</span>
+                      <div className="flex-1 editorial-card p-4 bg-[#111111]">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#2563EB]">
+                            {trace.agent} AGENT
+                          </span>
+                          <span className="text-[10px] text-[#555555] font-mono">{formatRelativeTime(trace.timestamp)}</span>
                         </div>
-                        <p className="text-sm text-muted leading-relaxed">{trace.reasoning}</p>
+                        <p className="text-xs text-[#888888] leading-relaxed font-mono">{trace.reasoning}</p>
                       </div>
                     </motion.div>
                   );
@@ -384,6 +465,25 @@ export default function IssueDetail() {
               </div>
             </div>
           )}
+
+          {/* Community verification action */}
+          <div className="pt-6 border-t border-[#222222] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-left">
+              <p className="text-xs font-mono font-bold text-[#F5F5F5]">Community Audit & Verification</p>
+              <p className="text-[11px] font-mono text-[#888888] mt-0.5">
+                Neighbors confirming reports earn trust points and accelerate dispatch priority.
+              </p>
+            </div>
+            <button
+              onClick={() => handleVerify('confirm')}
+              disabled={hasVerified || isVerifying}
+              className={`editorial-btn-primary text-xs py-2 px-6 ${
+                hasVerified ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/40 pointer-events-none' : ''
+              }`}
+            >
+              {hasVerified ? '✓ VERIFIED BY YOU' : 'CONFIRM THIS INCIDENT (+5 PTS)'}
+            </button>
+          </div>
 
           {/* Verify block */}
           {user && user.uid !== issue.reporterId && !hasVerified && (

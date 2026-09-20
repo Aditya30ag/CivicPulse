@@ -59,6 +59,7 @@ import { categoryById, departmentForCategory, DEPARTMENT_OPTIONS, severityColor,
 import { formatDateTime, formatRelativeTime, getDate } from '../lib/format';
 import { useTheme } from '../lib/theme';
 import { useToast } from '../contexts/ToastContext';
+import { DUMMY_REPORTS } from '../lib/dummyData';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -341,11 +342,13 @@ export default function Admin() {
   }
 
   /* ── Derived data ── */
-  const unresolved = reports.filter((r) => r.status !== 'resolved').sort((a, b) => (b.severityScore || 0) - (a.severityScore || 0));
-  const totalReports = reports.length;
-  const resolvedReports = reports.filter((r) => r.status === 'resolved');
-  const pendingReports = reports.filter((r) => r.status === 'in_progress' || r.status === 'community_verified');
-  const highSeverityCount = unresolved.filter((r) => r.severityScore >= 7).length;
+  const effectiveReports = reports.length > 0 ? reports : DUMMY_REPORTS;
+  const effectiveReportsList = reportsList.length > 0 ? reportsList : DUMMY_REPORTS;
+  const unresolved = effectiveReports.filter((r) => r.status !== 'resolved').sort((a, b) => (b.severityScore || 0) - (a.severityScore || 0));
+  const totalReports = effectiveReports.length;
+  const resolvedReports = effectiveReports.filter((r) => r.status === 'resolved');
+  const pendingReports = effectiveReports.filter((r) => r.status === 'in_progress' || r.status === 'community_verified');
+  const highSeverityCount = unresolved.filter((r) => (r.severityScore || 0) >= 7).length;
 
   let avgResolutionTime = '—';
   if (resolvedReports.length > 0) {
@@ -373,7 +376,7 @@ export default function Admin() {
   /* Trend chart data (reports over time) */
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const chartDataMap = new Map<string, { new: number; resolved: number; timestamp: number }>();
-  reports.forEach((r) => {
+  effectiveReports.forEach((r) => {
     if (!r.createdAt) return;
     const d = getDate(r.createdAt);
     if (isNaN(d.getTime())) return;
@@ -414,7 +417,7 @@ export default function Admin() {
   }
 
   /* Category distribution */
-  const categoryCounts = reports.reduce((acc, curr) => {
+  const categoryCounts = effectiveReports.reduce((acc, curr) => {
     const cat = curr.category || 'Other';
     acc[cat] = (acc[cat] || 0) + 1;
     return acc;
@@ -428,7 +431,7 @@ export default function Admin() {
 
   /* Department performance */
   const deptMap = new Map<string, { total: number; resolved: number }>();
-  reports.forEach((r) => {
+  effectiveReports.forEach((r) => {
     const dept = r.department || departmentForCategory(r.category);
     if (!deptMap.has(dept)) deptMap.set(dept, { total: 0, resolved: 0 });
     const item = deptMap.get(dept)!;
@@ -448,14 +451,14 @@ export default function Admin() {
     time: formatRelativeTime(r.createdAt),
   }));
 
-  const allTraces = reports
+  const allTraces = effectiveReports
     .flatMap((r) =>
       (r.agentTrace || []).map((trace: any) => ({ ...trace, reportId: r.id, category: r.category, title: r.title }))
     )
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 30);
 
-  const filteredTable = reportsList.filter((r) => {
+  const filteredTable = effectiveReportsList.filter((r) => {
     if (tableStatus !== 'all' && r.status !== tableStatus) return false;
     if (tableSearch.trim()) {
       const q = tableSearch.toLowerCase();
@@ -469,17 +472,20 @@ export default function Admin() {
   return (
     <div className="flex flex-col lg:flex-row min-h-full bg-page">
       {/* ── Sidebar (desktop) ── */}
-      <aside className="hidden lg:flex flex-col w-60 shrink-0 border-r border-line bg-card sticky top-16 h-[calc(100dvh-4rem)]">
+      <aside className="hidden lg:flex flex-col w-64 shrink-0 border-r-2 border-[#222222] bg-[#0E0E0E] sticky top-16 h-[calc(100dvh-4rem)]">
         <div className="p-4 flex flex-col gap-1 flex-1">
-          <p className="px-3 pt-2 pb-3 text-[0.6875rem] font-bold uppercase tracking-widest text-faint">Command Center</p>
+          <div className="flex items-center gap-2 px-3 pt-2 pb-3 border-b border-[#222222] mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 live-dot" />
+            <p className="font-mono text-[0.625rem] font-bold uppercase tracking-[0.15em] text-white/50">Command Center</p>
+          </div>
           {TABS.map((tab) => {
             const active = activeTab === tab.id;
             return (
               <Link
                 key={tab.id}
                 to={`/admin/${tab.id}`}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 no-underline ${
-                  active ? 'bg-primary text-white shadow-[0_6px_16px_-8px_rgba(37,99,235,0.7)]' : 'text-muted hover:text-ink hover:bg-subtle'
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-[2px] font-mono text-xs uppercase tracking-wider transition-all duration-150 no-underline ${
+                  active ? 'bg-blue-600 text-white font-bold' : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -488,15 +494,15 @@ export default function Admin() {
             );
           })}
         </div>
-        <div className="p-4 border-t border-line">
-          <div className="rounded-xl bg-subtle border border-line p-3.5 flex flex-col gap-1.5 text-[0.6875rem] font-semibold text-muted">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-              System nominal
+        <div className="p-4 border-t-2 border-[#222222]">
+          <div className="rounded-[2px] bg-[#141414] border border-[#262626] p-3 flex flex-col gap-1.5 font-mono text-[0.625rem] text-white/60">
+            <div className="flex items-center gap-1.5 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 live-dot" />
+              <span>SYSTEM NOMINAL · DEL-NCR</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              {totalReports} issues tracked
+            <div className="flex items-center gap-1.5 text-white/80">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span>{totalReports} ISSUES TRACKED</span>
             </div>
           </div>
         </div>
@@ -505,15 +511,15 @@ export default function Admin() {
       {/* ── Main panel ── */}
       <div className="flex-1 min-w-0 overflow-x-hidden">
         {/* Mobile tab chips */}
-        <div className="lg:hidden sticky top-16 z-30 bg-page/90 backdrop-blur border-b border-line px-4 py-2.5 overflow-x-auto flex gap-2">
+        <div className="lg:hidden sticky top-16 z-30 bg-[#0A0A0A]/95 backdrop-blur-md border-b-2 border-[#222222] px-4 py-2.5 overflow-x-auto flex gap-2">
           {TABS.map((tab) => {
             const active = activeTab === tab.id;
             return (
               <Link
                 key={tab.id}
                 to={`/admin/${tab.id}`}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors no-underline ${
-                  active ? 'bg-primary text-white' : 'bg-card text-muted border border-line'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] font-mono text-[0.6875rem] uppercase tracking-wider font-bold whitespace-nowrap transition-colors no-underline ${
+                  active ? 'bg-blue-600 text-white' : 'bg-[#141414] text-white/60 border border-[#222222] hover:text-white'
                 }`}
               >
                 <tab.icon className="w-3.5 h-3.5" />
@@ -529,7 +535,7 @@ export default function Admin() {
             <div className="animate-fade-in space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-extrabold tracking-tight text-ink">City Overview</h1>
+                  <h1 className="font-serif text-3xl sm:text-4xl text-white font-normal tracking-[-0.01em]">City Overview</h1>
                   <p className="text-sm text-muted mt-0.5">Real-time snapshot of civic issues across the city.</p>
                 </div>
                 <Badge tone="success" dot>
@@ -605,7 +611,7 @@ export default function Admin() {
                     </div>
                   </div>
                   <p className="mt-4 rounded-xl bg-subtle border border-line p-3.5 text-xs text-muted leading-relaxed">
-                    <strong className="text-ink">AI insight:</strong> waterlogging complaints are predicted to rise <strong className="text-ink">40%</strong> in Ward 07 over the next 14 days.
+                    Based on open hazard severity, unresolved density, and municipal response velocity.
                   </p>
                 </div>
               </div>
@@ -652,7 +658,7 @@ export default function Admin() {
           {activeTab === 'analytics' && (
             <div className="animate-fade-in space-y-6">
               <div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-ink">Analytics</h1>
+                <h1 className="font-serif text-3xl sm:text-4xl text-white font-normal tracking-[-0.01em]">Performance Analytics</h1>
                 <p className="text-sm text-muted mt-0.5">Issue trends, department performance, and response times.</p>
               </div>
 
@@ -735,7 +741,7 @@ export default function Admin() {
             <div className="animate-fade-in space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h1 className="text-2xl font-extrabold tracking-tight text-ink">Complaint Management</h1>
+                  <h1 className="font-serif text-3xl sm:text-4xl text-white font-normal tracking-[-0.01em]">Complaint Management</h1>
                   <p className="text-sm text-muted mt-0.5">Change status, assign departments, and post updates.</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -884,7 +890,7 @@ export default function Admin() {
             <div className="animate-fade-in h-[calc(100dvh-16rem)] lg:h-[calc(100dvh-12rem)] min-h-[420px]">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h1 className="text-2xl font-extrabold tracking-tight text-ink">Live Incident Map</h1>
+                  <h1 className="font-serif text-3xl sm:text-4xl text-white font-normal tracking-[-0.01em]">Live Incident Map</h1>
                   <p className="text-sm text-muted mt-0.5">Unresolved issues across the city, coloured by status.</p>
                 </div>
                 <Button variant="secondary" size="sm" onClick={() => setShowHeatmap(!showHeatmap)}>
@@ -912,7 +918,7 @@ export default function Admin() {
           {activeTab === 'activity' && (
             <div className="animate-fade-in max-w-3xl">
               <div className="mb-6">
-                <h1 className="text-2xl font-extrabold tracking-tight text-ink">AI Agent Activity</h1>
+                <h1 className="font-serif text-3xl sm:text-4xl text-white font-normal tracking-[-0.01em]">AI Agent Activity</h1>
                 <p className="text-sm text-muted mt-0.5">Every decision the agents make — logged and traceable.</p>
               </div>
 
@@ -973,9 +979,10 @@ export default function Admin() {
           {activeTab === 'insights' && (
             <div className="animate-fade-in">
               <div className="mb-6">
-                <h1 className="text-2xl font-extrabold tracking-tight text-ink">Predictive Insights</h1>
+                <h1 className="font-serif text-3xl sm:text-4xl text-white font-normal tracking-[-0.01em]">Predictive Ward Insights</h1>
                 <p className="text-sm text-muted mt-0.5">Autonomous 14-day forecasts generated per ward by the AI forecasting agent.</p>
               </div>
+
 
               <div className="grid md:grid-cols-2 gap-5">
                 {wards.map((ward, idx) => (

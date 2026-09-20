@@ -3,13 +3,13 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 
 type Tone = 'primary' | 'teal' | 'danger' | 'warning' | 'success' | 'neutral';
 
-const TONES: Record<Tone, { icon: string; bar: string }> = {
-  primary: { icon: 'bg-primary-soft text-primary', bar: 'bg-primary' },
-  teal: { icon: 'bg-teal-soft text-teal-brand', bar: 'bg-teal-brand' },
-  danger: { icon: 'bg-danger-soft text-danger', bar: 'bg-danger' },
-  warning: { icon: 'bg-warning-soft text-warning', bar: 'bg-warning' },
-  success: { icon: 'bg-success-soft text-success', bar: 'bg-success' },
-  neutral: { icon: 'bg-subtle text-muted', bar: 'bg-line-strong' },
+const TONES: Record<Tone, { icon: string; bar: string; text: string }> = {
+  primary: { icon: 'bg-[#2563EB]/10 text-[#2563EB] border border-[#2563EB]/30', bar: '#2563EB', text: 'text-[#2563EB]' },
+  teal: { icon: 'bg-[#0D9488]/10 text-[#0D9488] border border-[#0D9488]/30', bar: '#0D9488', text: 'text-[#0D9488]' },
+  danger: { icon: 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30', bar: '#EF4444', text: 'text-[#EF4444]' },
+  warning: { icon: 'bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30', bar: '#F59E0B', text: 'text-[#F59E0B]' },
+  success: { icon: 'bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30', bar: '#22C55E', text: 'text-[#22C55E]' },
+  neutral: { icon: 'bg-[#111111] text-[#888888] border border-[#222222]', bar: '#333333', text: 'text-[#888888]' },
 };
 
 interface StatCardProps {
@@ -33,27 +33,45 @@ export default function StatCard({
 }: StatCardProps) {
   const t = TONES[tone];
   return (
-    <div className="relative bg-card border border-line rounded-2xl shadow-card p-5 overflow-hidden group hover:shadow-pop transition-shadow duration-200">
-      <span className={`absolute left-0 top-0 bottom-0 w-1 ${t.bar}`} aria-hidden="true" />
-      <div className="flex items-center gap-3 mb-3">
-        <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${t.icon}`}>{icon}</span>
-        <span className="text-[0.6875rem] font-semibold uppercase tracking-widest text-muted">{label}</span>
-      </div>
-      <div className="flex items-end justify-between gap-2">
-        <span className="text-3xl font-extrabold tracking-tight text-ink leading-none tabular-nums">{value}</span>
-        {delta !== null && delta !== undefined && (
-          <span
-            className={`inline-flex items-center gap-1 text-xs font-semibold tabular-nums ${
-              delta >= 0 ? 'text-success' : 'text-danger'
-            }`}
-            title={deltaLabel}
-          >
-            {delta >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-            {Math.abs(delta)}%
+    <div
+      className="editorial-card relative p-5 overflow-hidden flex flex-col justify-between"
+      style={{
+        borderLeft: `3px solid ${t.bar}`,
+      }}
+    >
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="text-[11px] font-mono font-medium uppercase tracking-[0.08em] text-[#888888]">
+            {label}
           </span>
-        )}
+          <span className={`w-8 h-8 rounded-[2px] flex items-center justify-center ${t.icon}`}>
+            {icon}
+          </span>
+        </div>
+
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="font-mono text-3xl sm:text-4xl font-semibold text-[#F5F5F5] leading-none tabular-nums tracking-tight">
+            {value}
+          </span>
+          {delta !== null && delta !== undefined && (
+            <span
+              className={`inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums ${
+                delta >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'
+              }`}
+              title={deltaLabel}
+            >
+              {delta >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+              {Math.abs(delta)}%
+            </span>
+          )}
+        </div>
       </div>
-      {hint && <p className="text-xs text-faint mt-1.5">{hint}</p>}
+
+      {hint && (
+        <p className="text-[11px] font-mono text-[#555555] mt-3 pt-2.5 border-t border-[#222222]">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

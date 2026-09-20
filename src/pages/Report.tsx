@@ -399,15 +399,22 @@ export default function Report() {
   const tileUrl = theme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 
   return (
-    <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+    <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-[#0A0A0A] text-[#F5F5F5]">
       {/* Header */}
       <div className="mb-8 text-center">
-        <Badge tone="primary" className="mb-3">
-          <Sparkles className="w-3.5 h-3.5" /> AI-assisted reporting
-        </Badge>
-        <h1 className="text-3xl font-extrabold tracking-tight text-ink">Report an Issue</h1>
-        <p className="text-sm text-muted mt-2 max-w-md mx-auto">
-          Takes about a minute. Our AI agents classify, prioritise, and route your report automatically.
+        <div className="inline-flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-mono tracking-[0.08em] uppercase text-[#888888] px-2 py-0.5 border border-[#222222] bg-[#111111] rounded-[2px]">
+            © INCIDENT INTAKE PROTOCOL
+          </span>
+          <span className="flex items-center gap-1.5 font-mono text-[10px] text-[#2563EB]">
+            <Sparkles className="w-3 h-3" /> AI PERCEPTION READY
+          </span>
+        </div>
+        <h1 className="font-serif text-3xl sm:text-4xl font-normal text-[#F5F5F5] tracking-tight">
+          File a Verified Civic Report.
+        </h1>
+        <p className="text-xs font-mono text-[#888888] mt-1.5 max-w-md mx-auto">
+          Takes under 60 seconds. Autonomous machine vision classifies, deduplicates, and dispatches to the responsible city board.
         </p>
       </div>
 
@@ -417,7 +424,7 @@ export default function Report() {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-xl bg-danger-soft border border-danger/25 text-danger p-4 text-sm leading-relaxed">
+        <div className="mb-6 rounded-[2px] bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] p-4 text-xs font-mono leading-relaxed">
           {error}
         </div>
       )}
@@ -425,8 +432,15 @@ export default function Report() {
       {/* ══════════ STEP 1 — CATEGORY ══════════ */}
       {step === 1 && (
         <div className="animate-fade-up">
-          <h2 className="text-base font-bold text-ink mb-1">What type of issue is it?</h2>
-          <p className="text-sm text-muted mb-5">Pick the closest match — AI will refine it from your photo.</p>
+          <div className="mb-5">
+            <h2 className="text-sm font-mono font-bold text-[#F5F5F5] uppercase tracking-wider">
+              Step 01 — Primary Defect Category
+            </h2>
+            <p className="text-xs text-[#888888] font-sans mt-0.5">
+              Select the initial domain classification. AI perception will refine precise telemetry from media.
+            </p>
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-4">
             {CATEGORIES.map((c) => {
               const Icon = CATEGORY_ICONS[c.icon] ?? MapPin;
@@ -439,24 +453,24 @@ export default function Report() {
                     setSelectedCard(c.id);
                     setCategory(c.id);
                   }}
-                  className={`group text-left rounded-2xl border-2 p-5 transition-all duration-200 ${
+                  className={`group text-left p-5 transition-all duration-200 cursor-pointer editorial-card ${
                     active
-                      ? 'border-primary bg-primary/5 shadow-[0_8px_24px_-12px_rgba(37,99,235,0.5)]'
-                      : 'border-line bg-card hover:border-primary/40 hover:shadow-card'
+                      ? 'border-[#2563EB] bg-[#161616] ring-1 ring-[#2563EB]'
+                      : 'border-[#222222] bg-[#111111] hover:border-[#333333]'
                   }`}
                 >
                   <span
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-colors ${
-                      active ? 'bg-primary text-white' : 'bg-primary-soft text-primary group-hover:bg-primary group-hover:text-white'
+                    className={`w-10 h-10 rounded-[2px] flex items-center justify-center mb-3 transition-colors ${
+                      active ? 'bg-[#2563EB] text-white' : 'bg-[#161616] text-[#2563EB] border border-[#222222] group-hover:border-[#333333]'
                     }`}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   </span>
-                  <h3 className="text-sm font-bold text-ink">{c.label}</h3>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">{c.desc}</p>
+                  <h3 className="text-sm font-bold text-[#F5F5F5] leading-snug">{c.label}</h3>
+                  <p className="text-xs text-[#888888] mt-1 leading-relaxed font-sans">{c.desc}</p>
                   {active && (
-                    <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Selected
+                    <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-mono font-bold text-[#2563EB]">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> SELECTED
                     </span>
                   )}
                 </button>
@@ -470,26 +484,26 @@ export default function Report() {
                 setSelectedCard('custom');
                 setCategory(customCategory.trim() || 'Other');
               }}
-              className={`group text-left rounded-2xl border-2 p-5 transition-all duration-200 ${
+              className={`group text-left p-5 transition-all duration-200 cursor-pointer editorial-card ${
                 selectedCard === 'custom'
-                  ? 'border-primary bg-primary/5 shadow-[0_8px_24px_-12px_rgba(37,99,235,0.5)]'
-                  : 'border-line bg-card hover:border-primary/40 hover:shadow-card'
+                  ? 'border-[#2563EB] bg-[#161616] ring-1 ring-[#2563EB]'
+                  : 'border-[#222222] bg-[#111111] hover:border-[#333333]'
               }`}
             >
               <span
-                className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-colors ${
+                className={`w-10 h-10 rounded-[2px] flex items-center justify-center mb-3 transition-colors ${
                   selectedCard === 'custom'
-                    ? 'bg-primary text-white'
-                    : 'bg-primary-soft text-primary group-hover:bg-primary group-hover:text-white'
+                    ? 'bg-[#2563EB] text-white'
+                    : 'bg-[#161616] text-[#2563EB] border border-[#222222] group-hover:border-[#333333]'
                 }`}
               >
-                <PenLine className="w-5 h-5" />
+                <PenLine className="w-4 h-4" />
               </span>
-              <h3 className="text-sm font-bold text-ink">Other</h3>
-              <p className="text-xs text-muted mt-1 leading-relaxed">Something else — type the issue type below</p>
+              <h3 className="text-sm font-bold text-[#F5F5F5]">Custom Hazard</h3>
+              <p className="text-xs text-[#888888] mt-1 leading-relaxed font-sans">Other municipal irregularity — specify manually</p>
               {selectedCard === 'custom' && (
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Selected
+                <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-mono font-bold text-[#2563EB]">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> SELECTED
                 </span>
               )}
             </button>
@@ -498,11 +512,11 @@ export default function Report() {
           {/* Custom category input — shown when Other is selected */}
           {selectedCard === 'custom' && (
             <div className="mt-5 animate-fade-in">
-              <label htmlFor="customCategory" className="block text-[0.8125rem] font-semibold text-ink mb-1.5">
+              <label htmlFor="customCategory" className="block text-xs font-mono uppercase text-[#888888] mb-1.5">
                 Describe the issue type
               </label>
               <div className="relative">
-                <PenLine className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
+                <PenLine className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555555] pointer-events-none" />
                 <input
                   id="customCategory"
                   type="text"
@@ -514,10 +528,10 @@ export default function Report() {
                   placeholder="e.g. Damaged footbridge, stray animal, illegal parking…"
                   maxLength={60}
                   autoFocus
-                  className="w-full h-11 rounded-xl border border-line-strong bg-card pl-10 pr-4 text-sm text-ink placeholder:text-faint focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                  className="w-full h-11 rounded-[2px] border border-[#222222] bg-[#161616] pl-10 pr-4 text-xs font-mono text-[#F5F5F5] placeholder:text-[#555555] focus:outline-none focus:border-[#2563EB] transition-all"
                 />
               </div>
-              <p className="text-xs text-faint mt-1.5">Your custom type will be used as the report category.</p>
+              <p className="text-[11px] font-mono text-[#555555] mt-1.5">Your custom type will be used as the report category.</p>
             </div>
           )}
         </div>
@@ -780,10 +794,17 @@ export default function Report() {
       {/* ══════════ STEP 5 — REVIEW & SUBMIT ══════════ */}
       {step === 5 && (
         <form onSubmit={handleFinalSubmit} className="animate-fade-up space-y-5">
-          <h2 className="text-base font-bold text-ink">Review your report</h2>
+          <div className="mb-4">
+            <h2 className="text-sm font-mono font-bold text-[#F5F5F5] uppercase tracking-wider">
+              Step 05 — Audit & Confirm Dispatch
+            </h2>
+            <p className="text-xs text-[#888888] font-sans mt-0.5">
+              Review AI-synthesized telemetry and departmental routing before committing to municipal queue.
+            </p>
+          </div>
 
-          <div className="rounded-2xl border border-line bg-card overflow-hidden">
-            <div className="h-48 bg-subtle relative">
+          <div className="editorial-card p-0 overflow-hidden bg-[#161616]">
+            <div className="h-52 bg-[#111111] relative border-b border-[#222222]">
               {previewUrl || uploadedMediaUrl ? (
                 mediaType === 'video' ? (
                   <video src={previewUrl || uploadedMediaUrl || ''} className="w-full h-full object-cover" controls />
@@ -791,76 +812,97 @@ export default function Report() {
                   <img src={previewUrl || uploadedMediaUrl || ''} alt="Issue preview" className="w-full h-full object-cover" />
                 )
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-faint">
-                  <ImageIcon className="w-10 h-10" />
+                <div className="w-full h-full flex items-center justify-center text-[#555555]">
+                  <ImageIcon className="w-10 h-10 opacity-30" />
                 </div>
               )}
-              <span className="absolute top-3 left-3 rounded-full px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-wide text-white shadow-lg" style={{ background: severity >= 7 ? 'var(--danger)' : severity >= 4 ? 'var(--warning)' : 'var(--success)' }}>
-                {severityLabel(severity)} · {severity}/10
+              <span
+                className="absolute top-3 left-3 rounded-[2px] px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-white border"
+                style={{
+                  backgroundColor: '#0A0A0A',
+                  borderColor: severity >= 7 ? '#EF4444' : severity >= 4 ? '#F59E0B' : '#22C55E',
+                  color: severity >= 7 ? '#EF4444' : severity >= 4 ? '#F59E0B' : '#22C55E',
+                }}
+              >
+                {severityLabel(severity)} · SEV {severity}/10
               </span>
             </div>
 
-            <div className="p-5 space-y-3">
+            <div className="p-6 space-y-3.5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-bold text-ink leading-snug">{title}</h3>
-                  <p className="text-xs text-faint mt-0.5">{categoryDisplay}</p>
+                  <h3 className="text-base font-bold text-[#F5F5F5] leading-snug">{title}</h3>
+                  <p className="text-xs font-mono text-[#888888] mt-0.5">[{categoryDisplay.toUpperCase()}]</p>
                 </div>
-                <Badge tone="danger" dot>
-                  Reported
-                </Badge>
-              </div>
-              <p className="text-sm text-muted leading-relaxed">{description}</p>
-
-              <div className="flex flex-wrap gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-subtle px-3 py-1.5 text-xs font-semibold text-ink">
-                  <MapPin className="w-3.5 h-3.5 text-primary" />
-                  {location?.lat.toFixed(4)}, {location?.lng.toFixed(4)}
+                <span className="status-badge-open">
+                  REPORTED
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-subtle px-3 py-1.5 text-xs font-semibold text-ink">
-                  <Building2 className="w-3.5 h-3.5 text-teal-brand" />
+              </div>
+              <p className="text-xs text-[#888888] leading-relaxed font-sans">{description}</p>
+
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-[#222222]">
+                <span className="inline-flex items-center gap-1.5 rounded-[2px] bg-[#111111] border border-[#222222] px-2.5 py-1 font-mono text-[11px] text-[#F5F5F5]">
+                  <MapPin className="w-3 h-3 text-[#2563EB]" />
+                  {location ? `${location.lat.toFixed(4)}° N, ${location.lng.toFixed(4)}° E` : 'Coordinates Attached'}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-[2px] bg-[#111111] border border-[#222222] px-2.5 py-1 font-mono text-[11px] text-[#F5F5F5]">
+                  <Building2 className="w-3 h-3 text-[#22C55E]" />
                   {departmentForCategory(category)}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl bg-warning-soft border border-warning/25 p-4 text-xs text-ink leading-relaxed">
-            <strong className="font-bold">Before you submit:</strong> our AI agents will check for duplicates within 100m. If
-            the same issue is already reported, your report will be merged with it and count as a community verification.
+          <div className="rounded-[2px] bg-[#F59E0B]/10 border border-[#F59E0B]/30 p-4 text-xs font-mono text-[#F59E0B] leading-relaxed">
+            <strong className="font-bold">⚡ Autonomous Deduplication:</strong> Reports within 100m are merged automatically into a single work order and credit you as a community auditor.
           </div>
         </form>
       )}
 
       {/* ── Footer navigation ── */}
-      <div className="mt-8 flex items-center justify-between gap-3">
-        <Button variant="ghost" onClick={handleBack} disabled={step === 1}>
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
+      <div className="mt-8 pt-4 border-t border-[#222222] flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={handleBack}
+          disabled={step === 1}
+          className="editorial-btn-secondary text-xs py-2 px-4 disabled:opacity-40 disabled:pointer-events-none"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+          BACK
+        </button>
 
-        <div className="flex items-center gap-2 text-xs text-faint">
-          Step {step} of 5
+        <div className="font-mono text-xs text-[#555555]">
+          STEP {step} / 5
         </div>
 
         {step < 5 ? (
-          <Button onClick={handleContinue} disabled={!canContinue() || analyzing}>
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={!canContinue() || analyzing}
+            className="editorial-btn-primary text-xs py-2 px-5 disabled:opacity-40 disabled:pointer-events-none"
+          >
             {step === 4 && analyzing ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Analysing…
+                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> ANALYSING…
               </>
             ) : (
               <>
-                Continue
-                <ArrowRight className="w-4 h-4" />
+                CONTINUE
+                <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </>
             )}
-          </Button>
+          </button>
         ) : (
-          <Button onClick={handleFinalSubmit as any} loading={submitting} disabled={submitting}>
-            <CheckCircle2 className="w-4 h-4" />
-            {submitting ? 'Submitting…' : 'Confirm Submit'}
-          </Button>
+          <button
+            type="button"
+            onClick={handleFinalSubmit as any}
+            disabled={submitting}
+            className="editorial-btn-primary text-xs py-2 px-6 disabled:opacity-40"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+            {submitting ? 'DISPATCHING…' : 'COMMIT DISPATCH'}
+          </button>
         )}
       </div>
     </div>
