@@ -467,7 +467,11 @@ export default function Admin() {
     return true;
   });
 
-  const tileUrl = theme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY;
+  const cartoKeyParam = CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : '';
+  const tileUrl = theme === 'dark'
+    ? `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png${cartoKeyParam}`
+    : `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`;
 
   return (
     <div className="flex flex-col lg:flex-row min-h-full bg-page">
@@ -901,7 +905,7 @@ export default function Admin() {
               {showHeatmap ? (
                 <div className="rounded-2xl overflow-hidden border border-line h-full">
                   <MapContainer center={[37.7749, -122.4194]} zoom={13} className="w-full h-full z-0">
-                    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' url={tileUrl} />
+                    <TileLayer attribution='&copy; OpenStreetMap contributors &copy; CARTO' url={tileUrl} />
                     <AutoFitBounds data={unresolved} />
                     <HeatmapLayer data={unresolved} visible />
                   </MapContainer>

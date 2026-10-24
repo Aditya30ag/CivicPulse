@@ -396,7 +396,11 @@ export default function Report() {
     category && CATEGORIES.some((c) => c.id === category) ? categoryById(category).label : category;
 
   const mapCenter: [number, number] = location ? [location.lat, location.lng] : [37.7749, -122.4194];
-  const tileUrl = theme === 'dark' ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY;
+  const cartoKeyParam = CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : '';
+  const tileUrl = theme === 'dark'
+    ? `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png${cartoKeyParam}`
+    : `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`;
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-[#0A0A0A] text-[#F5F5F5]">
@@ -592,7 +596,7 @@ export default function Report() {
 
           <div className="rounded-2xl overflow-hidden border border-line h-[340px] relative">
             <MapContainer center={mapCenter} zoom={13} className="absolute inset-0 w-full h-full" zoomControl={false}>
-              <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' url={tileUrl} />
+              <TileLayer attribution='&copy; OpenStreetMap contributors &copy; CARTO' url={tileUrl} />
               <MapClickHandler onPick={(loc) => setLocation(loc)} />
               {location && (
                 <Marker position={[location.lat, location.lng]} icon={pinIcon}>
